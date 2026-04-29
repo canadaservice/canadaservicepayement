@@ -1,10 +1,26 @@
+const express = require("express");
+const axios = require("axios");
+const crypto = require("crypto");
+const cors = require("cors");
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+// 🔐 API KEY (Render ENV)
+const API_KEY = process.env.API_KEY;
+
+// ✅ TEST
+app.get("/", (req, res) => {
+  res.send("API Pawapay actif 🚀");
+});
+
+// 🔥 ROUTE DEPOSIT
 app.post("/deposit", async (req, res) => {
   try {
     const { phone, amount, country, operator } = req.body;
 
-    const depositId = crypto.randomUUID();
-
-    // 🔥 Mapping dynamique opérateur
+    // 🔥 mapping opérateurs
     const correspondents = {
       BEN: {
         MTN: "MTN_MOMO_BEN",
@@ -23,8 +39,12 @@ app.post("/deposit", async (req, res) => {
     const correspondent = correspondents[country]?.[operator];
 
     if (!correspondent) {
-      return res.status(400).json({ error: "Opérateur non supporté" });
+      return res.status(400).json({
+        error: "Opérateur non supporté"
+      });
     }
+
+    const depositId = crypto.randomUUID();
 
     const response = await axios.post(
       "https://api.pawapay.io/v1/deposits",
@@ -54,10 +74,16 @@ app.post("/deposit", async (req, res) => {
     res.json(response.data);
 
   } catch (error) {
-    console.log(error.response?.data || error.message);
+    console.log("❌ ERREUR:", error.response?.data || error.message);
 
     res.status(500).json({
       error: error.response?.data || error.message
     });
   }
+});
+
+// 🚀 START
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Serveur lancé sur port " + PORT);
 });
