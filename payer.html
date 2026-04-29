@@ -42,6 +42,10 @@
       cursor: pointer;
     }
 
+    button:disabled {
+      background: grey;
+    }
+
     #result {
       margin-top: 15px;
       font-weight: bold;
@@ -54,14 +58,15 @@
 <div class="box">
   <h2>Paiement sécurisé 💳</h2>
 
+  <!-- 🔽 BÉNIN EN BAS -->
   <select id="country" onchange="updateOperators()">
-    <option value="CMR">Cameroun</option>
     <option value="CIV">Côte d'Ivoire</option>
-    <option value="BEN">Bénin</option>
+    <option value="CMR">Cameroun</option>
     <option value="COD">RDC (Congo Kinshasa)</option>
     <option value="COG">Congo Brazzaville</option>
     <option value="GAB">Gabon</option>
     <option value="SEN">Sénégal</option>
+    <option value="BEN">Bénin</option>
   </select>
 
   <select id="operator"></select>
@@ -76,17 +81,18 @@
 
 <script>
 
-// ✅ OPERATORS CORRIGÉS
+// ✅ OPERATEURS CORRIGÉS
 const operators = {
-  CMR: ["MTN"], // FIX
-  CIV: ["MTN", "ORANGE"],
   BEN: ["MTN", "MOOV"],
+  CIV: ["MTN", "ORANGE"],
+  CMR: ["MTN"],
   COD: ["AIRTEL", "ORANGE", "VODACOM"],
-  COG: ["AIRTEL", "MTN"], // ✅ CONGO OK
+  COG: ["AIRTEL", "MTN"],
   GAB: ["AIRTEL"],
   SEN: ["ORANGE", "FREE"]
 };
 
+// 🔄 Mise à jour opérateurs
 function updateOperators() {
   const country = document.getElementById("country").value;
   const select = document.getElementById("operator");
@@ -101,8 +107,10 @@ function updateOperators() {
   });
 }
 
+// 🚀 init
 updateOperators();
 
+// 💳 paiement
 async function payer() {
 
   const phone = document.getElementById("phone").value.trim().replace("+", "");
