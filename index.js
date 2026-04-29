@@ -1,37 +1,43 @@
-const express = require("express");
-const axios = require("axios");
-const crypto = require("crypto");
-
-const app = express();
-app.use(express.json());
-
-// 🔐 API KEY (Render ENV)
-const API_KEY = process.env.API_KEY;
-
-// ✅ TEST
-app.get("/", (req, res) => {
-  res.send("API Pawapay actif 🚀");
-});
-
-// 🔥 ROUTE DEPOSIT (OBLIGATOIRE)
 app.post("/deposit", async (req, res) => {
   try {
-    const { phone, amount, country } = req.body;
+    const { phone, amount, country, operator } = req.body;
 
     const depositId = crypto.randomUUID();
+
+    // 🔥 mapping intelligent
+    const correspondents = {
+      BEN: {
+        MTN: "MTN_MOMO_BEN",
+        MOOV: "MOOV_MONEY_BEN"
+      },
+      CIV: {
+        MTN: "MTN_MOMO_CIV",
+        ORANGE: "ORANGE_CI"
+      },
+      CMR: {
+        MTN: "MTN_MOMO_CMR",
+        ORANGE: "ORANGE_CMR"
+      }
+    };
+
+    const correspondent = correspondents[country]?.[operator];
+
+    if (!correspondent) {
+      return res.status(400).json({ error: "Operateur non supporté" });
+    }
 
     const response = await axios.post(
       "https://api.pawapay.io/v1/deposits",
       {
-        depositId: depositId,
-        amount: amount,
+        depositId,
+        amount,
         currency: "XOF",
-        country: country,
-        correspondent: "MTN_MOMO_BEN",
+        country,
+        correspondent,
         payer: {
           type: "MSISDN",
           address: {
-            value: phone
+            value: phone.replace("+", "")
           }
         },
         customerTimestamp: new Date().toISOString(),
@@ -39,7 +45,7 @@ app.post("/deposit", async (req, res) => {
       },
       {
         headers: {
-          Authorization: `Bearer ${API_KEY}`,
+          Authorization: `Bearer ${process.env.API_KEY}`,
           "Content-Type": "application/json"
         }
       }
@@ -48,14 +54,7 @@ app.post("/deposit", async (req, res) => {
     res.json(response.data);
 
   } catch (error) {
-    res.status(500).json({
-      error: error.response?.data || error.message
-    });
+    console.log(error.response?.data);
+    res.status(500).json(error.response?.data);
   }
-});
-
-// 🚀 START
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Serveur lancé sur port " + PORT);
 });
