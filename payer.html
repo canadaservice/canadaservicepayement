@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Paiement sécurisé</title>
+
   <style>
     body {
       font-family: Arial;
@@ -15,15 +16,22 @@
     .box {
       background: white;
       padding: 30px;
-      border-radius: 10px;
+      border-radius: 12px;
       width: 320px;
       text-align: center;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-bottom: 20px;
     }
 
     input, select {
       width: 100%;
       padding: 10px;
       margin-top: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
 
     button {
@@ -33,8 +41,13 @@
       background: #00bcd4;
       color: white;
       border: none;
+      border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
+    }
+
+    button:disabled {
+      background: grey;
     }
 
     #result {
@@ -47,64 +60,71 @@
 <body>
 
 <div class="box">
-<h2>Paiement sécurisé 💳</h2>
+  <h2>Paiement sécurisé 💳</h2>
 
-<select id="country" onchange="updateOperators()">
-  <option value="BEN">Bénin</option>
-  <option value="CIV">Côte d'Ivoire</option>
-  <option value="CMR">Cameroun</option>
-</select>
+  <select id="country" onchange="updateOperators()">
+    <option value="BEN">Bénin</option>
+    <option value="CIV">Côte d'Ivoire</option>
+    <option value="CMR">Cameroun</option>
+  </select>
 
-<select id="operator"></select>
+  <select id="operator"></select>
 
-<input type="text" id="phone" placeholder="Numéro">
-<input type="number" id="amount" placeholder="Montant">
+  <input type="text" id="phone" placeholder="Numéro (ex: 229XXXXXXXX)">
+  <input type="number" id="amount" placeholder="Montant">
 
-<button onclick="payer()">Payer maintenant</button>
+  <button id="btn" onclick="payer()">Payer maintenant</button>
 
-<p id="result"></p>
+  <p id="result"></p>
 </div>
 
 <script>
 
+// 🔥 opérateurs par pays
 const operators = {
   BEN: ["MTN", "MOOV"],
   CIV: ["MTN", "ORANGE"],
   CMR: ["MTN", "ORANGE"]
 };
 
+// 🔄 update opérateurs
 function updateOperators() {
   const country = document.getElementById("country").value;
-  const opSelect = document.getElementById("operator");
+  const select = document.getElementById("operator");
 
-  opSelect.innerHTML = "";
+  select.innerHTML = "";
 
   operators[country].forEach(op => {
     const option = document.createElement("option");
     option.value = op;
     option.text = op;
-    opSelect.appendChild(option);
+    select.appendChild(option);
   });
 }
 
+// 🚀 init
 updateOperators();
 
+// 💳 paiement
 async function payer() {
 
-  const phone = document.getElementById("phone").value.replace("+", "");
+  const phone = document.getElementById("phone").value.trim().replace("+", "");
   const amount = document.getElementById("amount").value;
   const country = document.getElementById("country").value;
   const operator = document.getElementById("operator").value;
   const result = document.getElementById("result");
+  const btn = document.getElementById("btn");
 
   if (!phone || !amount) {
-    result.innerText = "❌ Remplis les champs";
+    result.innerText = "❌ Remplis tous les champs";
     return;
   }
 
   result.innerText = "⏳ Paiement en cours...";
+  btn.disabled = true;
 
   try {
+
     const res = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit", {
       method: "POST",
       headers: {
@@ -124,12 +144,15 @@ async function payer() {
     if (data.status === "ACCEPTED") {
       result.innerText = "✅ Paiement envoyé 📲 Vérifie ton téléphone";
     } else {
-      result.innerText = "❌ " + JSON.stringify(data);
+      result.innerText = "❌ " + (data.error || JSON.stringify(data));
     }
 
-  } catch (e) {
-    result.innerText = "❌ Serveur indisponible";
+  } catch (err) {
+    console.error(err);
+    result.innerText = "❌ Erreur réseau";
   }
+
+  btn.disabled = false;
 }
 
 </script>
