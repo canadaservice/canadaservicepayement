@@ -5,7 +5,7 @@ async function payer() {
   const operator = document.getElementById("operator").value;
 
   const result = document.getElementById("result");
-
+app.use(cors()); //
   // 🔄 message en cours
   result.innerText = "⏳ Paiement en cours...";
 
