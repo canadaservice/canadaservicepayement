@@ -1,38 +1,63 @@
-async function payer() {
-  const phone = document.getElementById("phone").value;
-  const amount = document.getElementById("amount").value;
-  const country = document.getElementById("country").value;
-  const operator = document.getElementById("operator").value;
-
-  const result = document.getElementById("result");
-app.use(cors()); //
-  // 🔄 message en cours
-  result.innerText = "⏳ Paiement en cours...";
-
+app.post("/deposit", async (req, res) => {
   try {
-    const res = await fetch("https://pawapay-api.onrender.com/deposit", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
+    const { phone, amount, country, operator } = req.body;
+
+    const depositId = crypto.randomUUID();
+
+    // 🔥 Mapping dynamique opérateur
+    const correspondents = {
+      BEN: {
+        MTN: "MTN_MOMO_BEN",
+        MOOV: "MOOV_BEN"
       },
-      body: JSON.stringify({
-        phone,
-        amount,
-        country,
-        operator
-      })
-    });
+      CIV: {
+        MTN: "MTN_MOMO_CIV",
+        ORANGE: "ORANGE_CIV"
+      },
+      CMR: {
+        MTN: "MTN_MOMO_CMR",
+        ORANGE: "ORANGE_CMR"
+      }
+    };
 
-    const data = await res.json();
+    const correspondent = correspondents[country]?.[operator];
 
-    // ✅ succès
-    if (data.status === "ACCEPTED") {
-      result.innerText = "✅ Paiement envoyé sur votre téléphone";
-    } else {
-      result.innerText = "❌ Erreur : " + JSON.stringify(data);
+    if (!correspondent) {
+      return res.status(400).json({ error: "Opérateur non supporté" });
     }
 
-  } catch (err) {
-    result.innerText = "❌ Erreur réseau";
+    const response = await axios.post(
+      "https://api.pawapay.io/v1/deposits",
+      {
+        depositId,
+        amount,
+        currency: "XOF",
+        country,
+        correspondent,
+        payer: {
+          type: "MSISDN",
+          address: {
+            value: phone
+          }
+        },
+        customerTimestamp: new Date().toISOString(),
+        statementDescription: "Paiement ACDH"
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    res.json(response.data);
+
+  } catch (error) {
+    console.log(error.response?.data || error.message);
+
+    res.status(500).json({
+      error: error.response?.data || error.message
+    });
   }
-}
+});
