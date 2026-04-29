@@ -55,9 +55,9 @@
   <h2>Paiement sécurisé 💳</h2>
 
   <select id="country" onchange="updateOperators()">
-    <option value="BEN">Bénin</option>
-    <option value="CIV">Côte d'Ivoire</option>
     <option value="CMR">Cameroun</option>
+    <option value="CIV">Côte d'Ivoire</option>
+    <option value="BEN">Bénin</option>
     <option value="COD">RDC (Congo Kinshasa)</option>
     <option value="COG">Congo Brazzaville</option>
     <option value="GAB">Gabon</option>
@@ -78,9 +78,9 @@
 
 // ✅ OPERATORS CORRIGÉS
 const operators = {
-  BEN: ["MTN", "MOOV"],
-  CIV: ["MTN", "ORANGE"],
   CMR: ["MTN"], // FIX
+  CIV: ["MTN", "ORANGE"],
+  BEN: ["MTN", "MOOV"],
   COD: ["AIRTEL", "ORANGE", "VODACOM"],
   COG: ["AIRTEL", "MTN"], // ✅ CONGO OK
   GAB: ["AIRTEL"],
