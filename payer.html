@@ -2,56 +2,41 @@
 <html>
 <head>
   <title>Paiement sécurisé</title>
-
   <style>
     body {
       font-family: Arial;
       background: #f5f5f5;
       display: flex;
       justify-content: center;
-      align-items: center;
-      height: 100vh;
+      padding-top: 50px;
     }
 
     .box {
       background: white;
       padding: 30px;
-      border-radius: 12px;
-      width: 320px;
+      border-radius: 10px;
+      width: 350px;
       text-align: center;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
 
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    input, select {
+    input, select, button {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       margin-top: 10px;
-      border-radius: 6px;
+      border-radius: 5px;
       border: 1px solid #ccc;
     }
 
     button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 15px;
       background: #00bcd4;
-      color: white;
       border: none;
-      border-radius: 6px;
       font-weight: bold;
       cursor: pointer;
-    }
-
-    button:disabled {
-      background: grey;
+      color: white;
     }
 
     #result {
-      margin-top: 15px;
+      margin-top: 20px;
       font-weight: bold;
     }
   </style>
@@ -70,7 +55,7 @@
 
   <select id="operator"></select>
 
-  <input type="text" id="phone" placeholder="Numéro (ex: 229XXXXXXXX)">
+  <input type="text" id="phone" placeholder="Numéro">
   <input type="number" id="amount" placeholder="Montant">
 
   <button id="btn" onclick="payer()">Payer maintenant</button>
@@ -80,35 +65,31 @@
 
 <script>
 
-// 🔥 opérateurs par pays
-const operators = {
+const operatorsByCountry = {
   BEN: ["MTN", "MOOV"],
   CIV: ["MTN", "ORANGE"],
   CMR: ["MTN", "ORANGE"]
 };
 
-// 🔄 update opérateurs
 function updateOperators() {
   const country = document.getElementById("country").value;
-  const select = document.getElementById("operator");
+  const operatorSelect = document.getElementById("operator");
 
-  select.innerHTML = "";
+  operatorSelect.innerHTML = "";
 
-  operators[country].forEach(op => {
+  operatorsByCountry[country].forEach(op => {
     const option = document.createElement("option");
     option.value = op;
     option.text = op;
-    select.appendChild(option);
+    operatorSelect.appendChild(option);
   });
 }
 
-// 🚀 init
 updateOperators();
 
-// 💳 paiement
 async function payer() {
 
-  const phone = document.getElementById("phone").value.trim().replace("+", "");
+  const phone = document.getElementById("phone").value.replace("+","");
   const amount = document.getElementById("amount").value;
   const country = document.getElementById("country").value;
   const operator = document.getElementById("operator").value;
@@ -120,7 +101,7 @@ async function payer() {
     return;
   }
 
-  result.innerText = "⏳ Paiement en cours...";
+  result.innerText = "⏳ Envoi en cours...";
   btn.disabled = true;
 
   try {
@@ -139,16 +120,50 @@ async function payer() {
     });
 
     const data = await res.json();
-    console.log(data);
 
-    if (data.status === "ACCEPTED") {
-      result.innerText = "✅ Paiement envoyé 📲 Vérifie ton téléphone";
-    } else {
-      result.innerText = "❌ " + (data.error || JSON.stringify(data));
+    if (!data.depositId) {
+      result.innerText = "❌ Erreur serveur";
+      btn.disabled = false;
+      return;
     }
 
+    result.innerText = "📲 Vérifie ton téléphone...";
+
+    const depositId = data.depositId;
+
+    // 🔁 vérification automatique
+    let tries = 0;
+
+    const interval = setInterval(async () => {
+
+      const check = await fetch(
+        "https://orange-queen.serviceprive93.workers.dev/status?id=" + depositId
+      );
+
+      const statusData = await check.json();
+
+      console.log(statusData);
+
+      if (statusData.status === "COMPLETED") {
+        result.innerText = "✅ Paiement confirmé 🎉";
+        clearInterval(interval);
+      }
+
+      if (statusData.status === "FAILED") {
+        result.innerText = "❌ Paiement échoué";
+        clearInterval(interval);
+      }
+
+      tries++;
+      if (tries > 10) {
+        result.innerText = "⏳ Toujours en attente...";
+        clearInterval(interval);
+      }
+
+    }, 5000);
+
   } catch (err) {
-    console.error(err);
+    console.log(err);
     result.innerText = "❌ Erreur réseau";
   }
 
