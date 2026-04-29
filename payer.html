@@ -66,6 +66,12 @@
     <option value="BEN">Bénin</option>
     <option value="CIV">Côte d'Ivoire</option>
     <option value="CMR">Cameroun</option>
+
+    <!-- 🔥 AJOUT -->
+    <option value="COD">RDC (Congo Kinshasa)</option>
+    <option value="COG">Congo Brazzaville</option>
+    <option value="GAB">Gabon</option>
+    <option value="SEN">Sénégal</option>
   </select>
 
   <select id="operator"></select>
@@ -80,11 +86,17 @@
 
 <script>
 
-// 🔥 opérateurs par pays
+// 🔥 opérateurs par pays (AJOUT SEULEMENT)
 const operators = {
   BEN: ["MTN", "MOOV"],
   CIV: ["MTN", "ORANGE"],
-  CMR: ["MTN", "ORANGE"]
+  CMR: ["MTN", "ORANGE"],
+
+  // 🔥 nouveaux pays
+  COD: ["AIRTEL", "ORANGE", "VODACOM"],
+  COG: ["AIRTEL", "MTN"],
+  GAB: ["AIRTEL"],
+  SEN: ["ORANGE", "FREE"]
 };
 
 // 🔄 update opérateurs
