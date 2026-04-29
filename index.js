@@ -1,61 +1,96 @@
-async function payer() {
-  const phone = document.getElementById("phone").value.trim();
-  const amount = document.getElementById("amount").value;
-  const country = document.getElementById("country").value;
-  const operator = document.getElementById("operator").value;
-  const result = document.getElementById("result");
-  const btn = document.getElementById("btn");
+const express = require("express");
+const axios = require("axios");
+const crypto = require("crypto");
+const cors = require("cors");
 
-  if (!phone || !amount) {
-    result.innerText = "❌ Remplis tous les champs";
-    return;
-  }
+const app = express();
 
-  const cleanPhone = phone.replace("+", "");
+// ✅ CORS (OBLIGATOIRE)
+app.use(cors({
+  origin: "*"
+}));
 
-  btn.disabled = true;
-  result.innerText = "⏳ Initialisation...";
+app.use(express.json());
 
+// 🔐 API KEY (Render ENV)
+const API_KEY = process.env.API_KEY;
+
+// ✅ TEST
+app.get("/", (req, res) => {
+  res.send("API Pawapay actif 🚀");
+});
+
+// 🔥 ROUTE DEPOSIT
+app.post("/deposit", async (req, res) => {
   try {
-    // 🔥 réveil serveur
-    await fetch("https://pawapay-api.onrender.com/");
-    await new Promise(r => setTimeout(r, 4000));
+    const { phone, amount, country, operator } = req.body;
 
-    result.innerText = "⏳ Envoi paiement...";
+    if (!phone || !amount || !country || !operator) {
+      return res.status(400).json({ error: "Champs manquants" });
+    }
 
-    const res = await fetch("https://pawapay-api.onrender.com/deposit", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
+    // 🔥 correspondants dynamiques
+    const correspondents = {
+      BEN: {
+        MTN: "MTN_MOMO_BEN",
+        MOOV: "MOOV_BEN"
       },
-      body: JSON.stringify({
-        phone: cleanPhone,
-        amount,
+      CIV: {
+        MTN: "MTN_MOMO_CIV",
+        ORANGE: "ORANGE_CIV"
+      },
+      CMR: {
+        MTN: "MTN_MOMO_CMR",
+        ORANGE: "ORANGE_CMR"
+      }
+    };
+
+    const correspondent = correspondents[country]?.[operator];
+
+    if (!correspondent) {
+      return res.status(400).json({ error: "Opérateur non supporté" });
+    }
+
+    const depositId = crypto.randomUUID();
+
+    const response = await axios.post(
+      "https://api.pawapay.io/v1/deposits",
+      {
+        depositId,
+        amount: amount.toString(),
+        currency: "XOF",
         country,
-        operator
-      })
+        correspondent,
+        payer: {
+          type: "MSISDN",
+          address: {
+            value: phone
+          }
+        },
+        customerTimestamp: new Date().toISOString(),
+        statementDescription: "Paiement ACDH"
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    res.json(response.data);
+
+  } catch (error) {
+    console.log(error.response?.data || error.message);
+
+    res.status(500).json({
+      error: error.response?.data || "Erreur serveur"
     });
-
-    // 🔥 vérifier si réponse OK
-    if (!res.ok) {
-      throw new Error("Réponse serveur invalide");
-    }
-
-    const data = await res.json();
-    console.log("SUCCESS:", data);
-
-    if (data.status === "ACCEPTED") {
-      result.innerText = "✅ Paiement envoyé 📲 Vérifie ton téléphone";
-    } else {
-      result.innerText = "❌ Réponse : " + JSON.stringify(data);
-    }
-
-  } catch (err) {
-    console.log("ERREUR:", err);
-
-    // ⚠️ message plus intelligent
-    result.innerText = "⚠️ Connexion lente... réessaie dans 5 secondes";
   }
+});
 
-  btn.disabled = false;
-}
+// 🚀 START
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Serveur lancé sur port " + PORT);
+});
