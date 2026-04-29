@@ -1,60 +1,38 @@
-app.post("/deposit", async (req, res) => {
+async function payer() {
+  const phone = document.getElementById("phone").value;
+  const amount = document.getElementById("amount").value;
+  const country = document.getElementById("country").value;
+  const operator = document.getElementById("operator").value;
+
+  const result = document.getElementById("result");
+
+  // 🔄 message en cours
+  result.innerText = "⏳ Paiement en cours...";
+
   try {
-    const { phone, amount, country, operator } = req.body;
-
-    const depositId = crypto.randomUUID();
-
-    // 🔥 mapping intelligent
-    const correspondents = {
-      BEN: {
-        MTN: "MTN_MOMO_BEN",
-        MOOV: "MOOV_MONEY_BEN"
+    const res = await fetch("https://pawapay-api.onrender.com/deposit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       },
-      CIV: {
-        MTN: "MTN_MOMO_CIV",
-        ORANGE: "ORANGE_CI"
-      },
-      CMR: {
-        MTN: "MTN_MOMO_CMR",
-        ORANGE: "ORANGE_CMR"
-      }
-    };
+      body: JSON.stringify({
+        phone,
+        amount,
+        country,
+        operator
+      })
+    });
 
-    const correspondent = correspondents[country]?.[operator];
+    const data = await res.json();
 
-    if (!correspondent) {
-      return res.status(400).json({ error: "Operateur non supporté" });
+    // ✅ succès
+    if (data.status === "ACCEPTED") {
+      result.innerText = "✅ Paiement envoyé sur votre téléphone";
+    } else {
+      result.innerText = "❌ Erreur : " + JSON.stringify(data);
     }
 
-    const response = await axios.post(
-      "https://api.pawapay.io/v1/deposits",
-      {
-        depositId,
-        amount,
-        currency: "XOF",
-        country,
-        correspondent,
-        payer: {
-          type: "MSISDN",
-          address: {
-            value: phone.replace("+", "")
-          }
-        },
-        customerTimestamp: new Date().toISOString(),
-        statementDescription: "Paiement ACDH"
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.API_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    res.json(response.data);
-
-  } catch (error) {
-    console.log(error.response?.data);
-    res.status(500).json(error.response?.data);
+  } catch (err) {
+    result.innerText = "❌ Erreur réseau";
   }
-});
+}
