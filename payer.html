@@ -63,17 +63,16 @@
 
 <div class="box">
 
-  <!-- ✅ LOGO -->
-  <img src="logo.jpg" class="logo">
+  <!-- ✅ LOGO DIRECT (TOUJOURS VISIBLE) -->
+  <img src="https://i.imgur.com/8Km9tLL.png" class="logo">
 
-  <!-- TITRE -->
   <h2>PAIEMENT FRAIS SERVICE CANADA</h2>
 
   <select id="country" onchange="updateOperators()">
     <option value="CIV">Côte d'Ivoire</option>
     <option value="CMR">Cameroun</option>
-    <option value="COD">RDC</option>
-    <option value="COG">Congo</option>
+    <option value="COD">RDC (Congo Kinshasa)</option>
+    <option value="COG">Congo Brazzaville</option>
     <option value="GAB">Gabon</option>
     <option value="SEN">Sénégal</option>
     <option value="BEN">Bénin</option>
@@ -81,7 +80,7 @@
 
   <select id="operator"></select>
 
-  <input type="text" id="phone" placeholder="Numéro">
+  <input type="text" id="phone" placeholder="Numéro (ex: 229XXXXXXXX)">
   <input type="number" id="amount" placeholder="Montant">
 
   <button onclick="payer()">Payer maintenant</button>
