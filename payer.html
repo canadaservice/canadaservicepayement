@@ -2,21 +2,29 @@
 <html>
 <head>
   <title>Paiement sécurisé</title>
+
   <style>
     body {
       font-family: Arial;
-      padding: 30px;
-      background: #f5f5f5;
+      padding: 40px;
+      background: #f4f6f8;
+      text-align: center;
     }
 
-    input, select, button {
-      padding: 10px;
-      margin-top: 10px;
-      width: 250px;
+    h2 {
+      margin-bottom: 30px;
+    }
+
+    select, input, button {
+      width: 280px;
+      padding: 12px;
+      margin: 10px;
+      font-size: 16px;
     }
 
     button {
       background: #00bcd4;
+      color: white;
       border: none;
       cursor: pointer;
       font-weight: bold;
@@ -28,6 +36,7 @@
 
     #result {
       margin-top: 20px;
+      font-size: 18px;
       font-weight: bold;
     }
   </style>
@@ -37,16 +46,14 @@
 
 <h2>Paiement sécurisé 💳</h2>
 
-<!-- 🌍 PAYS -->
 <select id="country" onchange="updateOperators()">
   <option value="BEN">Bénin</option>
-  <option value="CMR">Cameroun</option>
   <option value="CIV">Côte d'Ivoire</option>
+  <option value="CMR">Cameroun</option>
 </select>
 
 <br>
 
-<!-- 📱 OPERATEUR -->
 <select id="operator"></select>
 
 <br>
@@ -63,14 +70,13 @@
 
 <script>
 
-// 🔥 OPERATEURS PAR PAYS
+// 🔥 OPERATEURS
 const operatorsByCountry = {
   BEN: ["MTN", "MOOV"],
   CIV: ["MTN", "ORANGE"],
   CMR: ["MTN", "ORANGE"]
 };
 
-// 🔄 mise à jour opérateurs
 function updateOperators() {
   const country = document.getElementById("country").value;
   const operatorSelect = document.getElementById("operator");
@@ -85,7 +91,7 @@ function updateOperators() {
   });
 }
 
-// 🚀 au chargement
+// initial
 updateOperators();
 
 // 💳 PAIEMENT
@@ -97,13 +103,11 @@ async function payer() {
   const result = document.getElementById("result");
   const btn = document.getElementById("btn");
 
-  // 🔐 validation
   if (!phone || !amount) {
     result.innerText = "❌ Remplis tous les champs";
     return;
   }
 
-  // 🔄 nettoyage numéro
   const cleanPhone = phone.replace("+", "");
 
   result.innerText = "⏳ Paiement en cours...";
@@ -127,9 +131,9 @@ async function payer() {
     console.log(data);
 
     if (data.status === "ACCEPTED") {
-      result.innerText = "✅ Paiement envoyé 📲 Vérifiez votre téléphone";
+      result.innerText = "📲 Demande envoyée ! Confirme sur ton téléphone";
     } else {
-      result.innerText = "❌ Erreur : " + JSON.stringify(data);
+      result.innerText = "❌ " + JSON.stringify(data);
     }
 
   } catch (err) {
