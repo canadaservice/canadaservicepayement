@@ -63,7 +63,7 @@
 
 <div class="box">
 
-  <!-- ✅ LOGO (IMPORTANT) -->
+  <!-- LOGO -->
   <img src="logo.png" class="logo">
 
   <h2>PAIEMENT FRAIS SERVICE CANADA</h2>
@@ -80,7 +80,7 @@
 
   <select id="operator"></select>
 
-  <input type="text" id="phone" placeholder="Numéro (ex: 225XXXXXXXX)">
+  <input type="text" id="phone" placeholder="Numéro">
   <input type="number" id="amount" placeholder="Montant">
 
   <button onclick="payer()">Payer maintenant</button>
@@ -101,9 +101,22 @@ const operators = {
   SEN: ["ORANGE", "FREE"]
 };
 
+// 🔥 préfixes
+const prefixes = {
+  BEN: "229",
+  CIV: "225",
+  CMR: "237",
+  COD: "243",
+  COG: "242",
+  GAB: "241",
+  SEN: "221"
+};
+
 function updateOperators() {
   const country = document.getElementById("country").value;
   const select = document.getElementById("operator");
+  const phoneInput = document.getElementById("phone");
+
   select.innerHTML = "";
 
   operators[country].forEach(op => {
@@ -112,9 +125,22 @@ function updateOperators() {
     option.text = op;
     select.appendChild(option);
   });
+
+  // ✅ ajoute le préfixe
+  phoneInput.value = prefixes[country];
 }
 
 updateOperators();
+
+// 🔒 empêche suppression du préfixe
+document.getElementById("phone").addEventListener("input", function () {
+  const country = document.getElementById("country").value;
+  const prefix = prefixes[country];
+
+  if (!this.value.startsWith(prefix)) {
+    this.value = prefix;
+  }
+});
 
 async function payer() {
 
@@ -128,7 +154,7 @@ async function payer() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        phone: document.getElementById("phone").value.trim().replace("+", ""),
+        phone: document.getElementById("phone").value,
         amount: document.getElementById("amount").value,
         country: document.getElementById("country").value,
         operator: document.getElementById("operator").value
