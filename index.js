@@ -1,95 +1,99 @@
-const express = require("express");
-const axios = require("axios");
-const crypto = require("crypto");
-const cors = require("cors");
-const app = express();
+export default {
+  async fetch(request) {
 
-// ✅ CORS (OBLIGATOIRE)
-app.use(cors({
-  origin: "*"
-}));
+    const url = new URL(request.url);
 
-app.use(express.json());
-
-// 🔐 API KEY (Render ENV)
-const API_KEY = process.env.API_KEY;
-
-// ✅ TEST
-app.get("/", (req, res) => {
-  res.send("API Pawapay actif 🚀");
-});
-
-// 🔥 ROUTE DEPOSIT
-app.post("/deposit", async (req, res) => {
-  try {
-    const { phone, amount, country, operator } = req.body;
-
-    if (!phone || !amount || !country || !operator) {
-      return res.status(400).json({ error: "Champs manquants" });
+    // ✅ Test API
+    if (url.pathname === "/") {
+      return new Response("API Pawapay OK 🚀");
     }
 
-    // 🔥 correspondants dynamiques
-    const correspondents = {
-      BEN: {
-        MTN: "MTN_MOMO_BEN",
-        MOOV: "MOOV_BEN"
-      },
-      CIV: {
-        MTN: "MTN_MOMO_CIV",
-        ORANGE: "ORANGE_CIV"
-      },
-      CMR: {
-        MTN: "MTN_MOMO_CMR",
-        ORANGE: "ORANGE_CMR"
+    // 🔥 ROUTE DEPOSIT
+    if (url.pathname === "/deposit") {
+
+      // 🔐 CORS
+      const corsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type"
+      };
+
+      // OPTIONS (important)
+      if (request.method === "OPTIONS") {
+        return new Response(null, { headers: corsHeaders });
       }
-    };
 
-    const correspondent = correspondents[country]?.[operator];
+      try {
+        const body = await request.json();
 
-    if (!correspondent) {
-      return res.status(400).json({ error: "Opérateur non supporté" });
-    }
+        const { phone, amount, country, operator } = body;
 
-    const depositId = crypto.randomUUID();
-
-    const response = await axios.post(
-      "https://api.pawapay.io/v1/deposits",
-      {
-        depositId,
-        amount: amount.toString(),
-        currency: "XOF",
-        country,
-        correspondent,
-        payer: {
-          type: "MSISDN",
-          address: {
-            value: phone
+        // 🔥 Mapping opérateurs Pawapay
+        const correspondents = {
+          BEN: {
+            MTN: "MTN_MOMO_BEN",
+            MOOV: "MOOV_BEN"
+          },
+          CIV: {
+            MTN: "MTN_MOMO_CIV",
+            ORANGE: "ORANGE_CIV"
+          },
+          CMR: {
+            MTN: "MTN_MOMO_CMR",
+            ORANGE: "ORANGE_CMR"
           }
-        },
-        customerTimestamp: new Date().toISOString(),
-        statementDescription: "Paiement ACDH"
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${API_KEY}`,
-          "Content-Type": "application/json"
+        };
+
+        const correspondent = correspondents[country]?.[operator];
+
+        if (!correspondent) {
+          return new Response(JSON.stringify({
+            error: "Opérateur non supporté"
+          }), { headers: corsHeaders });
         }
+
+        // 🔐 TA CLE API
+        const API_KEY = "eyJraWQiOiIxIiwiYWxnIjoiRVMyNTYifQ.eyJ0dCI6IkFBVCIsInN1YiI6IjI4NzMiLCJtYXYiOiIxIiwiZXhwIjoyMDkzMDc1OTk4LCJpYXQiOjE3Nzc0NTY3OTgsInBtIjoiREFGLFBBRiIsImp0aSI6ImExZjQ1ZGM4LWUwMzctNDE4Mi1hN2UwLTU0YWIwY2M2YjhlMyJ9.dbW4tATK1rVgRgRjvhYbB3TBtP6UcVMdg4wzpj7-fpPYK96DEUkV-EDx_rJmxrlb7ErvgpaeNltjoWgaCaUFKA"; // ⚠️ remplace ici
+
+        const response = await fetch("https://api.pawapay.io/v1/deposits", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            depositId: crypto.randomUUID(),
+            amount: amount.toString(),
+            currency: "XOF",
+            country,
+            correspondent,
+            payer: {
+              type: "MSISDN",
+              address: { value: phone }
+            },
+            customerTimestamp: new Date().toISOString(),
+            statementDescription: "Paiement ACDH"
+          })
+        });
+
+        const data = await response.json();
+
+        return new Response(JSON.stringify(data), {
+          headers: corsHeaders
+        });
+
+      } catch (err) {
+        return new Response(JSON.stringify({
+          error: "Erreur serveur",
+          detail: err.toString()
+        }), {
+          headers: {
+            "Access-Control-Allow-Origin": "*"
+          }
+        });
       }
-    );
+    }
 
-    res.json(response.data);
-
-  } catch (error) {
-    console.log(error.response?.data || error.message);
-
-    res.status(500).json({
-      error: error.response?.data || "Erreur serveur"
-    });
+    return new Response("Not found", { status: 404 });
   }
-});
-
-// 🚀 START
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Serveur lancé sur port " + PORT);
-});
+};
