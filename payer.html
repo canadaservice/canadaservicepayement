@@ -16,7 +16,7 @@
     }
 
     select, input, button {
-      width: 280px;
+      width: 300px;
       padding: 12px;
       margin: 10px;
       font-size: 16px;
@@ -70,7 +70,7 @@
 
 <script>
 
-// 🔥 OPERATEURS
+// 🔥 opérateurs dynamiques
 const operatorsByCountry = {
   BEN: ["MTN", "MOOV"],
   CIV: ["MTN", "ORANGE"],
@@ -91,10 +91,9 @@ function updateOperators() {
   });
 }
 
-// initial
 updateOperators();
 
-// 💳 PAIEMENT
+// 💳 paiement
 async function payer() {
   const phone = document.getElementById("phone").value.trim();
   const amount = document.getElementById("amount").value;
@@ -110,10 +109,16 @@ async function payer() {
 
   const cleanPhone = phone.replace("+", "");
 
-  result.innerText = "⏳ Paiement en cours...";
   btn.disabled = true;
+  result.innerText = "⏳ Connexion serveur...";
 
   try {
+    // 🔥 réveil Render
+    await fetch("https://pawapay-api.onrender.com/");
+    await new Promise(r => setTimeout(r, 3000));
+
+    result.innerText = "⏳ Paiement en cours...";
+
     const res = await fetch("https://pawapay-api.onrender.com/deposit", {
       method: "POST",
       headers: {
@@ -131,14 +136,14 @@ async function payer() {
     console.log(data);
 
     if (data.status === "ACCEPTED") {
-      result.innerText = "📲 Demande envoyée ! Confirme sur ton téléphone";
+      result.innerText = "📲 Vérifie ton téléphone pour valider";
     } else {
       result.innerText = "❌ " + JSON.stringify(data);
     }
 
   } catch (err) {
     console.log(err);
-    result.innerText = "❌ Erreur réseau";
+    result.innerText = "❌ Serveur indisponible (réessaie)";
   }
 
   btn.disabled = false;
