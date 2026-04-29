@@ -5,15 +5,15 @@ const crypto = require("crypto");
 const app = express();
 app.use(express.json());
 
-// 🔐 API KEY (depuis Render ENV)
+// 🔐 API KEY (Render ENV)
 const API_KEY = process.env.API_KEY;
 
-// 🟢 TEST SERVEUR
+// ✅ TEST
 app.get("/", (req, res) => {
   res.send("API Pawapay actif 🚀");
 });
 
-// 🔥 ROUTE DEPOSIT (IMPORTANT)
+// 🔥 ROUTE DEPOSIT (OBLIGATOIRE)
 app.post("/deposit", async (req, res) => {
   try {
     const { phone, amount, country } = req.body;
@@ -54,7 +54,7 @@ app.post("/deposit", async (req, res) => {
   }
 });
 
-// 🚀 LANCEMENT SERVEUR
+// 🚀 START
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Serveur lancé sur port " + PORT);
