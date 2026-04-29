@@ -58,7 +58,7 @@
 <div class="box">
   <h2>Paiement sécurisé 💳</h2>
 
-  <!-- 🔽 BÉNIN EN BAS -->
+  <!-- ✅ BÉNIN EN BAS -->
   <select id="country" onchange="updateOperators()">
     <option value="CIV">Côte d'Ivoire</option>
     <option value="CMR">Cameroun</option>
@@ -81,7 +81,7 @@
 
 <script>
 
-// ✅ OPERATEURS CORRIGÉS
+// 🌍 OPERATEURS
 const operators = {
   BEN: ["MTN", "MOOV"],
   CIV: ["MTN", "ORANGE"],
@@ -121,15 +121,21 @@ async function payer() {
   const result = document.getElementById("result");
   const btn = document.getElementById("btn");
 
+  // ✅ validation
   if (!phone || !amount) {
     result.innerText = "❌ Remplis tous les champs";
+    return;
+  }
+
+  if (isNaN(amount) || amount <= 0) {
+    result.innerText = "❌ Montant invalide";
     return;
   }
 
   result.innerText = "⏳ Paiement en cours...";
   btn.disabled = true;
 
-  console.log({ phone, amount, country, operator });
+  console.log("PAYLOAD:", { phone, amount, country, operator });
 
   try {
 
@@ -147,7 +153,7 @@ async function payer() {
     });
 
     const data = await res.json();
-    console.log(data);
+    console.log("RESPONSE:", data);
 
     if (data.status === "ACCEPTED") {
       result.innerText = "✅ Paiement envoyé 📲 Vérifie ton téléphone";
