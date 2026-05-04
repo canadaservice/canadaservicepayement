@@ -1,34 +1,24 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Paiement ACDH</title>
+<title>Paiement</title>
 
 <style>
-body{
-  font-family:Arial;
-  background:
-    linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.6)),
-    url("background.jpg") no-repeat center;
-  background-size:cover;
+body {
+  font-family: Arial;
+  background:#f5f5f5;
   display:flex;
-  flex-direction:column;
-  align-items:center;
   justify-content:center;
+  align-items:center;
   height:100vh;
 }
 
-.box{
+.box {
   background:white;
   padding:30px;
-  width:360px;
+  width:320px;
   border-radius:10px;
   text-align:center;
-}
-
-.logo{
-  width:130px;
-  margin-bottom:10px;
 }
 
 input,select,button{
@@ -41,18 +31,6 @@ button{
   background:#00bcd4;
   color:white;
   border:none;
-  font-weight:bold;
-}
-
-#displayAmount{
-  margin-top:10px;
-  font-weight:bold;
-}
-
-.footer{
-  margin-top:20px;
-  color:white;
-  font-size:12px;
 }
 </style>
 </head>
@@ -61,38 +39,24 @@ button{
 
 <div class="box">
 
-<img src="logo.png" class="logo">
+<h3>Paiement</h3>
 
-<h3>Paiement ACDH</h3>
-
-<select id="service" onchange="updateAmount()">
-  <option value="biometrie">Données biométriques - 150 USD</option>
-  <option value="langue">Test de langue - 150 USD</option>
-  <option value="administratif">Droit administratif - 220 USD</option>
-  <option value="total">Tout payer - 520 USD</option>
-</select>
-
-<select id="country" onchange="updateOperators(); updateAmount(); toggleCurrency();">
+<select id="country" onchange="updateOperators()">
+  <option value="BEN">Bénin</option>
   <option value="CIV">Côte d'Ivoire</option>
   <option value="CMR">Cameroun</option>
   <option value="COD">RDC</option>
-  <option value="COG">Congo</option>
-  <option value="GAB">Gabon</option>
-  <option value="SEN">Sénégal</option>
-  <option value="BEN">Bénin</option>
-</select>
-
-<!-- USD RDC -->
-<select id="currency" style="display:none" onchange="updateAmount()">
-  <option value="CDF">CDF</option>
-  <option value="USD">USD</option>
 </select>
 
 <select id="operator"></select>
 
-<input id="phone" placeholder="Numéro sans indicatif">
+<!-- 🔥 PREFIX + NUMERO -->
+<div style="display:flex; gap:5px;">
+  <input id="prefix" readonly style="width:30%; background:#eee;">
+  <input id="phone" placeholder="Numéro" style="width:70%;">
+</div>
 
-<p id="displayAmount"></p>
+<input id="amount" placeholder="Montant">
 
 <button onclick="payer()">Payer</button>
 
@@ -100,55 +64,21 @@ button{
 
 </div>
 
-<div class="footer">
-© 2026 ACDH Services Canada International — Tous droits réservés — Plateforme sécurisée 🔒
-</div>
-
 <script>
 
-// 💳 SERVICES
-const services={
-  biometrie:150,
-  langue:150,
-  administratif:220,
-  total:520
-};
-
-// 🌍 DEVISES
-const currencies={
-  BEN:"XOF",CIV:"XOF",SEN:"XOF",
-  CMR:"XAF",GAB:"XAF",COG:"XAF",
-  COD:"CDF"
-};
-
-// 📡 OPERATEURS
-const operators={
+const operators = {
   BEN:["MTN","MOOV"],
-  CMR:["MTN"],
   CIV:["MTN","ORANGE"],
-  COD:["AIRTEL","ORANGE","VODACOM"],
-  GAB:["AIRTEL"],
-  COG:["AIRTEL","MTN"],
-  SEN:["ORANGE","FREE"]
+  CMR:["MTN"],
+  COD:["AIRTEL","ORANGE","VODACOM"]
 };
 
-// 📞 INDICATIFS
-const prefixes={
+const prefixes = {
   BEN:"229",
   CIV:"225",
   CMR:"237",
-  COD:"243",
-  COG:"242",
-  GAB:"241",
-  SEN:"221"
+  COD:"243"
 };
-
-let rates={};
-
-async function loadRates(){
-  const r=await fetch("https://open.er-api.com/v6/latest/USD");
-  rates=(await r.json()).rates;
-}
 
 function updateOperators(){
 
@@ -161,81 +91,39 @@ function updateOperators(){
     operator.appendChild(op);
   });
 
-  // 🔥 indicatif auto
-  phone.value = prefixes[country.value];
+  prefix.value = prefixes[country.value];
 }
 
-// 🔒 bloquer suppression indicatif
-phone.addEventListener("input",function(){
-
-  const prefix = prefixes[country.value];
-
-  if(!this.value.startsWith(prefix)){
-    this.value = prefix;
-  }
-
-});
-
-// 🔒 empêcher effacement indicatif
-phone.addEventListener("keydown",function(e){
-
-  const prefixLength = prefixes[country.value].length;
-
-  if(this.selectionStart <= prefixLength && e.key === "Backspace"){
-    e.preventDefault();
-  }
-
-});
-
-// 💵 afficher USD seulement RDC
-function toggleCurrency(){
-  currency.style.display = country.value==="COD" ? "block":"none";
-}
-
-function updateAmount(){
-
-  const usd=services[service.value];
-
-  let cur = country.value==="COD"
-    ? currency.value
-    : currencies[country.value];
-
-  if(!rates[cur]) return;
-
-  const amt=Math.round(usd*rates[cur]);
-
-  displayAmount.innerText="Montant à payer : "+amt+" "+cur;
-}
+updateOperators();
 
 async function payer(){
 
-  result.innerText="Traitement...";
+  const result = document.getElementById("result");
 
-  const res=await fetch("/api/pay",{
+  result.innerText="⏳ Envoi...";
+
+  // 🔥 FORMAT QUI MARCHE (IMPORTANT)
+  const fullPhone = prefix.value + phone.value;
+
+  const res = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
-      phone:phone.value,
-      service:service.value,
-      country:country.value,
-      operator:operator.value,
-      currency:currency.value
+      phone: fullPhone,
+      amount: amount.value,
+      country: country.value,
+      operator: operator.value
     })
   });
 
-  const data=await res.json();
+  const data = await res.json();
 
-  result.innerText=
-    data.status==="SUCCESS"?"Paiement réussi":
-    data.status==="PENDING"?"En attente":
-    "Échec";
+  result.innerText =
+    data.status==="ACCEPTED"?"📲 Vérifiez votre téléphone":
+    data.status==="PENDING"?"⏳ En attente":
+    data.status==="SUCCESS"?"✅ Paiement confirmé":
+    "❌ Échec";
 }
-
-loadRates().then(()=>{
-  updateOperators();
-  updateAmount();
-  toggleCurrency();
-});
 
 </script>
 
