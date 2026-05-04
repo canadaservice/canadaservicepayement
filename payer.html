@@ -56,6 +56,14 @@ button{
   margin-top:5px;
 }
 
+#result{
+  margin-top:15px;
+  font-weight:bold;
+  padding:10px;
+  border-radius:5px;
+  background:#f5f5f5;
+}
+
 .footer{
   margin-top:20px;
   color:white;
@@ -69,7 +77,6 @@ button{
 
 <div class="box">
 
-<!-- LOGO -->
 <img src="logo.png" class="logo">
 
 <h3>Paiement ACDH</h3>
@@ -91,7 +98,6 @@ button{
   <option value="BEN">Bénin</option>
 </select>
 
-<!-- USD RDC -->
 <select id="currency" style="display:none" onchange="updateAmount()">
   <option value="CDF">CDF</option>
   <option value="USD">USD</option>
@@ -99,7 +105,6 @@ button{
 
 <select id="operator"></select>
 
-<!-- NUMERO -->
 <input id="phone" placeholder="Entrez votre numéro">
 
 <div class="note">
@@ -120,7 +125,6 @@ button{
 
 <script>
 
-// SERVICES
 const services={
   biometrie:150,
   langue:150,
@@ -128,14 +132,12 @@ const services={
   total:520
 };
 
-// DEVISES
 const currencies={
   BEN:"XOF",CIV:"XOF",SEN:"XOF",
   CMR:"XAF",GAB:"XAF",COG:"XAF",
   COD:"CDF"
 };
 
-// OPERATEURS
 const operators={
   BEN:["MTN","MOOV"],
   CMR:["MTN"],
@@ -146,7 +148,6 @@ const operators={
   SEN:["ORANGE","FREE"]
 };
 
-// INDICATIFS
 const prefixes={
   BEN:"229",
   CIV:"225",
@@ -175,11 +176,9 @@ function updateOperators(){
     operator.appendChild(op);
   });
 
-  // indicatif auto
   phone.value = prefixes[country.value];
 }
 
-// bloquer suppression indicatif
 phone.addEventListener("input",function(){
   const prefix = prefixes[country.value];
   if(!this.value.startsWith(prefix)){
@@ -187,7 +186,6 @@ phone.addEventListener("input",function(){
   }
 });
 
-// empêcher effacement
 phone.addEventListener("keydown",function(e){
   const prefixLength = prefixes[country.value].length;
   if(this.selectionStart <= prefixLength && e.key === "Backspace"){
@@ -195,12 +193,10 @@ phone.addEventListener("keydown",function(e){
   }
 });
 
-// USD RDC
 function toggleCurrency(){
   currency.style.display = country.value==="COD" ? "block":"none";
 }
 
-// conversion
 function updateAmount(){
 
   const usd=services[service.value];
@@ -216,10 +212,9 @@ function updateAmount(){
   displayAmount.innerText="Montant à payer : "+amt+" "+cur;
 }
 
-// paiement
 async function payer(){
 
-  result.innerText="Traitement...";
+  result.innerText="⏳ Traitement du paiement...";
 
   const res=await fetch("/api/pay",{
     method:"POST",
@@ -235,13 +230,34 @@ async function payer(){
 
   const data=await res.json();
 
-  result.innerText=
-    data.status==="SUCCESS"?"Paiement réussi":
-    data.status==="PENDING"?"En attente":
-    "Échec";
+  if(data.status==="SUCCESS"){
+    result.innerHTML=`
+      ✅ Paiement confirmé<br>
+      💰 Montant payé : ${data.amount} ${data.currency}<br>
+      📲 Merci, votre opération est validée
+    `;
+  }
+  else if(data.status==="PENDING"){
+    result.innerHTML=`
+      ⏳ Paiement en attente<br>
+      📱 Veuillez valider sur votre téléphone
+    `;
+  }
+  else if(data.status==="ACCEPTED"){
+    result.innerHTML=`
+      📲 Demande envoyée<br>
+      👉 Vérifiez votre téléphone
+    `;
+  }
+  else{
+    result.innerHTML=`
+      ❌ Échec du paiement<br>
+      ⚠️ Veuillez réessayer
+    `;
+  }
+
 }
 
-// INIT
 loadRates().then(()=>{
   updateOperators();
   updateAmount();
