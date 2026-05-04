@@ -49,10 +49,18 @@ button{
   font-weight:bold;
 }
 
+.note{
+  font-size:12px;
+  color:#666;
+  text-align:left;
+  margin-top:5px;
+}
+
 .footer{
   margin-top:20px;
   color:white;
   font-size:12px;
+  text-align:center;
 }
 </style>
 </head>
@@ -61,6 +69,7 @@ button{
 
 <div class="box">
 
+<!-- LOGO -->
 <img src="logo.png" class="logo">
 
 <h3>Paiement ACDH</h3>
@@ -90,7 +99,12 @@ button{
 
 <select id="operator"></select>
 
-<input id="phone" placeholder="Numéro sans indicatif">
+<!-- NUMERO -->
+<input id="phone" placeholder="Entrez votre numéro">
+
+<div class="note">
+⚠️ Entrez uniquement votre numéro sans indicatif (ex: 97XXXXXX)
+</div>
 
 <p id="displayAmount"></p>
 
@@ -106,7 +120,7 @@ button{
 
 <script>
 
-// 💳 SERVICES
+// SERVICES
 const services={
   biometrie:150,
   langue:150,
@@ -114,14 +128,14 @@ const services={
   total:520
 };
 
-// 🌍 DEVISES
+// DEVISES
 const currencies={
   BEN:"XOF",CIV:"XOF",SEN:"XOF",
   CMR:"XAF",GAB:"XAF",COG:"XAF",
   COD:"CDF"
 };
 
-// 📡 OPERATEURS
+// OPERATEURS
 const operators={
   BEN:["MTN","MOOV"],
   CMR:["MTN"],
@@ -132,7 +146,7 @@ const operators={
   SEN:["ORANGE","FREE"]
 };
 
-// 📞 INDICATIFS
+// INDICATIFS
 const prefixes={
   BEN:"229",
   CIV:"225",
@@ -161,37 +175,32 @@ function updateOperators(){
     operator.appendChild(op);
   });
 
-  // 🔥 indicatif auto
+  // indicatif auto
   phone.value = prefixes[country.value];
 }
 
-// 🔒 bloquer suppression indicatif
+// bloquer suppression indicatif
 phone.addEventListener("input",function(){
-
   const prefix = prefixes[country.value];
-
   if(!this.value.startsWith(prefix)){
     this.value = prefix;
   }
-
 });
 
-// 🔒 empêcher effacement indicatif
+// empêcher effacement
 phone.addEventListener("keydown",function(e){
-
   const prefixLength = prefixes[country.value].length;
-
   if(this.selectionStart <= prefixLength && e.key === "Backspace"){
     e.preventDefault();
   }
-
 });
 
-// 💵 afficher USD seulement RDC
+// USD RDC
 function toggleCurrency(){
   currency.style.display = country.value==="COD" ? "block":"none";
 }
 
+// conversion
 function updateAmount(){
 
   const usd=services[service.value];
@@ -207,6 +216,7 @@ function updateAmount(){
   displayAmount.innerText="Montant à payer : "+amt+" "+cur;
 }
 
+// paiement
 async function payer(){
 
   result.innerText="Traitement...";
@@ -231,6 +241,7 @@ async function payer(){
     "Échec";
 }
 
+// INIT
 loadRates().then(()=>{
   updateOperators();
   updateAmount();
