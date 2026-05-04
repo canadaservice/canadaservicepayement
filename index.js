@@ -2,14 +2,12 @@ const express = require("express");
 const fetch = require("node-fetch");
 const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
-const path = require("path");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(express.static("public"));
 
-// 📊 DATABASE
 const db = new sqlite3.Database("./payments.db");
 
 db.run(`
@@ -18,6 +16,7 @@ CREATE TABLE IF NOT EXISTS payments (
   phone TEXT,
   service TEXT,
   amount INTEGER,
+  currency TEXT,
   country TEXT,
   operator TEXT,
   status TEXT,
@@ -25,11 +24,12 @@ CREATE TABLE IF NOT EXISTS payments (
 )
 `);
 
-// 💳 SERVICES (USD)
+// 💳 NOUVEAUX SERVICES (USD)
 const services = {
-  visa: 10,
-  immigration: 20,
-  assistance: 5
+  biometrie: 150,
+  langue: 150,
+  administratif: 220,
+  total: 520
 };
 
 // 🌍 DEVISES
@@ -40,28 +40,22 @@ const currencies = {
   CMR: "XAF",
   GAB: "XAF",
   COG: "XAF",
-  COD: "CDF"
+  COD: null
 };
 
 let rates = {};
 
-// 💱 LOAD RATES
 async function loadRates() {
-  try {
-    const res = await fetch("https://open.er-api.com/v6/latest/USD");
-    const data = await res.json();
-    rates = data.rates;
-    console.log("Taux chargés");
-  } catch {
-    console.log("Erreur taux");
-  }
+  const res = await fetch("https://open.er-api.com/v6/latest/USD");
+  const data = await res.json();
+  rates = data.rates;
 }
 loadRates();
 
 // 🔐 API PAY
 app.post("/api/pay", async (req, res) => {
 
-  const { phone, service, country, operator } = req.body;
+  const { phone, service, country, operator, currency } = req.body;
 
   if (!phone || !service || !country || !operator) {
     return res.status(400).json({ error: "Données invalides" });
@@ -70,14 +64,16 @@ app.post("/api/pay", async (req, res) => {
   const usd = services[service];
   if (!usd) return res.status(400).json({ error: "Service invalide" });
 
-  const currency = currencies[country];
-  if (!rates[currency]) {
+  const finalCurrency = country === "COD" ? currency : currencies[country];
+
+  if (!rates[finalCurrency]) {
     return res.status(500).json({ error: "Taux indisponible" });
   }
 
-  const amount = Math.round(usd * rates[currency]);
+  const amount = Math.round(usd * rates[finalCurrency]);
 
   try {
+
     const paymentRes = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -87,25 +83,21 @@ app.post("/api/pay", async (req, res) => {
     const data = await paymentRes.json();
 
     db.run(
-      "INSERT INTO payments (phone, service, amount, country, operator, status) VALUES (?, ?, ?, ?, ?, ?)",
-      [phone, service, amount, country, operator, data.status]
+      "INSERT INTO payments (phone, service, amount, currency, country, operator, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [phone, service, amount, finalCurrency, country, operator, data.status]
     );
 
-    res.json({ status: data.status, amount });
+    res.json({ status: data.status, amount, currency: finalCurrency });
 
   } catch {
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-// 📊 API LIST
 app.get("/api/payments", (req, res) => {
   db.all("SELECT * FROM payments ORDER BY created_at DESC", [], (err, rows) => {
     res.json(rows);
   });
 });
 
-// 🚀 START
-app.listen(3000, () => {
-  console.log("Serveur lancé : http://localhost:3000");
-});
+app.listen(3000, () => console.log("http://localhost:3000"));
