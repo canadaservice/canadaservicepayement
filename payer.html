@@ -7,29 +7,39 @@
 <style>
 body {
   font-family: Arial;
-  background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  background:
+    linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+    url("background.jpg") no-repeat center center fixed;
+  background-size: cover;
   display:flex;
   justify-content:center;
   align-items:center;
   height:100vh;
 }
+
 .box {
   background:white;
   padding:30px;
-  width:350px;
+  width:360px;
   border-radius:10px;
 }
+
 input,select,button{
   width:100%;
   margin-top:10px;
   padding:10px;
 }
+
 button{
   background:#00bcd4;
   color:white;
   border:none;
 }
-#displayAmount{margin-top:10px;font-weight:bold;}
+
+#displayAmount{
+  margin-top:10px;
+  font-weight:bold;
+}
 </style>
 </head>
 
@@ -40,12 +50,13 @@ button{
 <h3>Paiement ACDH</h3>
 
 <select id="service" onchange="updateAmount()">
-  <option value="visa">Visa Canada</option>
-  <option value="immigration">Immigration</option>
-  <option value="assistance">Assistance</option>
+  <option value="biometrie">Données biométriques - 150 USD</option>
+  <option value="langue">Test de langue - 150 USD</option>
+  <option value="administratif">Droit administratif - 220 USD</option>
+  <option value="total">Tout payer - 520 USD</option>
 </select>
 
-<select id="country" onchange="updateOperators();updateAmount();">
+<select id="country" onchange="updateOperators(); updateAmount(); toggleCurrency();">
   <option value="CIV">Côte d'Ivoire</option>
   <option value="CMR">Cameroun</option>
   <option value="COD">RDC</option>
@@ -53,6 +64,11 @@ button{
   <option value="GAB">Gabon</option>
   <option value="SEN">Sénégal</option>
   <option value="BEN">Bénin</option>
+</select>
+
+<select id="currency" style="display:none" onchange="updateAmount()">
+  <option value="CDF">CDF</option>
+  <option value="USD">USD</option>
 </select>
 
 <select id="operator"></select>
@@ -69,12 +85,17 @@ button{
 
 <script>
 
-const services = { visa:10, immigration:20, assistance:5 };
+const services = {
+  biometrie:150,
+  langue:150,
+  administratif:220,
+  total:520
+};
 
 const currencies = {
   BEN:"XOF", CIV:"XOF", SEN:"XOF",
   CMR:"XAF", GAB:"XAF", COG:"XAF",
-  COD:"CDF"
+  COD:null
 };
 
 const operators = {
@@ -95,9 +116,8 @@ async function loadRates(){
 }
 
 function updateOperators(){
-  const c=country.value;
   operator.innerHTML="";
-  operators[c].forEach(o=>{
+  operators[country.value].forEach(o=>{
     let op=document.createElement("option");
     op.value=o;
     op.textContent=o;
@@ -105,12 +125,23 @@ function updateOperators(){
   });
 }
 
+function toggleCurrency(){
+  currency.style.display = country.value==="COD" ? "block" : "none";
+}
+
 function updateAmount(){
+
   const usd=services[service.value];
-  const cur=currencies[country.value];
-  if(!rates[cur])return;
+
+  let cur = country.value==="COD"
+    ? currency.value
+    : currencies[country.value];
+
+  if(!rates[cur]) return;
+
   const amt=Math.round(usd*rates[cur]);
-  displayAmount.innerText="Montant : "+amt+" "+cur;
+
+  displayAmount.innerText="Montant à payer : "+amt+" "+cur;
 }
 
 async function payer(){
@@ -124,18 +155,23 @@ async function payer(){
       phone:phone.value,
       service:service.value,
       country:country.value,
-      operator:operator.value
+      operator:operator.value,
+      currency:currency.value
     })
   });
 
   const data=await res.json();
 
-  result.innerText=data.status;
+  result.innerText =
+    data.status==="SUCCESS" ? "Paiement réussi"
+    : data.status==="PENDING" ? "En attente"
+    : "Échec";
 }
 
 loadRates().then(()=>{
   updateOperators();
   updateAmount();
+  toggleCurrency();
 });
 
 </script>
