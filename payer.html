@@ -5,23 +5,33 @@
 <title>Paiement ACDH</title>
 
 <style>
-body {
-  font-family: Arial;
+body{
+  font-family:Arial;
   background:
-    linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+    linear-gradient(rgba(0,0,0,0.6),rgba(0,0,0,0.6)),
     url("background.jpg") no-repeat center;
-  background-size: cover;
+  background-size:cover;
   display:flex;
-  justify-content:center;
+  flex-direction:column;
   align-items:center;
+  justify-content:center;
   height:100vh;
 }
 
-.box {
+.box{
   background:white;
   padding:30px;
   width:360px;
   border-radius:10px;
+  text-align:center;
+}
+
+.profile{
+  width:80px;
+  height:80px;
+  border-radius:50%;
+  object-fit:cover;
+  margin-bottom:10px;
 }
 
 input,select,button{
@@ -34,11 +44,19 @@ button{
   background:#00bcd4;
   color:white;
   border:none;
+  font-weight:bold;
 }
 
 #displayAmount{
   margin-top:10px;
   font-weight:bold;
+}
+
+.footer{
+  margin-top:20px;
+  color:white;
+  font-size:12px;
+  text-align:center;
 }
 </style>
 </head>
@@ -46,6 +64,8 @@ button{
 <body>
 
 <div class="box">
+
+<img src="profile.jpg" class="profile">
 
 <h3>Paiement ACDH</h3>
 
@@ -56,7 +76,7 @@ button{
   <option value="total">Tout payer - 520 USD</option>
 </select>
 
-<select id="country" onchange="updateOperators(); updateAmount();">
+<select id="country" onchange="updateOperators(); updateAmount(); toggleCurrency();">
   <option value="CIV">Côte d'Ivoire</option>
   <option value="CMR">Cameroun</option>
   <option value="COD">RDC</option>
@@ -64,6 +84,12 @@ button{
   <option value="GAB">Gabon</option>
   <option value="SEN">Sénégal</option>
   <option value="BEN">Bénin</option>
+</select>
+
+<!-- 💵 USD RDC -->
+<select id="currency" style="display:none" onchange="updateAmount()">
+  <option value="CDF">CDF</option>
+  <option value="USD">USD</option>
 </select>
 
 <select id="operator"></select>
@@ -78,22 +104,26 @@ button{
 
 </div>
 
+<div class="footer">
+  © 2026 ACDH Services Canada International — Tous droits réservés — Plateforme sécurisée 🔒
+</div>
+
 <script>
 
-const services = {
+const services={
   biometrie:150,
   langue:150,
   administratif:220,
   total:520
 };
 
-const currencies = {
-  BEN:"XOF", CIV:"XOF", SEN:"XOF",
-  CMR:"XAF", GAB:"XAF", COG:"XAF",
+const currencies={
+  BEN:"XOF",CIV:"XOF",SEN:"XOF",
+  CMR:"XAF",GAB:"XAF",COG:"XAF",
   COD:"CDF"
 };
 
-const operators = {
+const operators={
   BEN:["MTN","MOOV"],
   CMR:["MTN"],
   CIV:["MTN","ORANGE"],
@@ -120,17 +150,23 @@ function updateOperators(){
   });
 }
 
+function toggleCurrency(){
+  currency.style.display = country.value==="COD" ? "block":"none";
+}
+
 function updateAmount(){
 
   const usd=services[service.value];
-  const cur=currencies[country.value];
+
+  let cur = country.value==="COD"
+    ? currency.value
+    : currencies[country.value];
 
   if(!rates[cur]) return;
 
   const amt=Math.round(usd*rates[cur]);
 
-  displayAmount.innerText =
-    "Montant à payer : "+amt+" "+cur;
+  displayAmount.innerText="Montant à payer : "+amt+" "+cur;
 }
 
 async function payer(){
@@ -144,21 +180,23 @@ async function payer(){
       phone:phone.value,
       service:service.value,
       country:country.value,
-      operator:operator.value
+      operator:operator.value,
+      currency:currency.value
     })
   });
 
   const data=await res.json();
 
-  result.innerText =
-    data.status==="SUCCESS" ? "Paiement réussi"
-    : data.status==="PENDING" ? "En attente"
-    : "Échec";
+  result.innerText=
+    data.status==="SUCCESS"?"Paiement réussi":
+    data.status==="PENDING"?"En attente":
+    "Échec";
 }
 
 loadRates().then(()=>{
   updateOperators();
   updateAmount();
+  toggleCurrency();
 });
 
 </script>
