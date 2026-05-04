@@ -1,99 +1,116 @@
-export default {
-  async fetch(request) {
+// index.js
+const express = require("express");
+const fetch = require("node-fetch");
+const sqlite3 = require("sqlite3").verbose();
+const cors = require("cors");
 
-    const url = new URL(request.url);
+const app = express();
+app.use(express.json());
+app.use(cors());
 
-    // ✅ Test API
-    if (url.pathname === "/") {
-      return new Response("API Pawapay OK 🚀");
-    }
+// 📊 DATABASE
+const db = new sqlite3.Database("./payments.db");
 
-    // 🔥 ROUTE DEPOSIT
-    if (url.pathname === "/deposit") {
+db.run(`
+CREATE TABLE IF NOT EXISTS payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  phone TEXT,
+  service TEXT,
+  amount INTEGER,
+  country TEXT,
+  operator TEXT,
+  status TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+`);
 
-      // 🔐 CORS
-      const corsHeaders = {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-      };
-
-      // OPTIONS (important)
-      if (request.method === "OPTIONS") {
-        return new Response(null, { headers: corsHeaders });
-      }
-
-      try {
-        const body = await request.json();
-
-        const { phone, amount, country, operator } = body;
-
-        // 🔥 Mapping opérateurs Pawapay
-        const correspondents = {
-          BEN: {
-            MTN: "MTN_MOMO_BEN",
-            MOOV: "MOOV_BEN"
-          },
-          CIV: {
-            MTN: "MTN_MOMO_CIV",
-            ORANGE: "ORANGE_CIV"
-          },
-          CMR: {
-            MTN: "MTN_MOMO_CMR",
-            ORANGE: "ORANGE_CMR"
-          }
-        };
-
-        const correspondent = correspondents[country]?.[operator];
-
-        if (!correspondent) {
-          return new Response(JSON.stringify({
-            error: "Opérateur non supporté"
-          }), { headers: corsHeaders });
-        }
-
-        // 🔐 TA CLE API
-        const API_KEY = "eyJraWQiOiIxIiwiYWxnIjoiRVMyNTYifQ.eyJ0dCI6IkFBVCIsInN1YiI6IjI4NzMiLCJtYXYiOiIxIiwiZXhwIjoyMDkzMDc1OTk4LCJpYXQiOjE3Nzc0NTY3OTgsInBtIjoiREFGLFBBRiIsImp0aSI6ImExZjQ1ZGM4LWUwMzctNDE4Mi1hN2UwLTU0YWIwY2M2YjhlMyJ9.dbW4tATK1rVgRgRjvhYbB3TBtP6UcVMdg4wzpj7-fpPYK96DEUkV-EDx_rJmxrlb7ErvgpaeNltjoWgaCaUFKA"; // ⚠️ remplace ici
-
-        const response = await fetch("https://api.pawapay.io/v1/deposits", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${API_KEY}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            depositId: crypto.randomUUID(),
-            amount: amount.toString(),
-            currency: "XOF",
-            country,
-            correspondent,
-            payer: {
-              type: "MSISDN",
-              address: { value: phone }
-            },
-            customerTimestamp: new Date().toISOString(),
-            statementDescription: "Paiement ACDH"
-          })
-        });
-
-        const data = await response.json();
-
-        return new Response(JSON.stringify(data), {
-          headers: corsHeaders
-        });
-
-      } catch (err) {
-        return new Response(JSON.stringify({
-          error: "Erreur serveur",
-          detail: err.toString()
-        }), {
-          headers: {
-            "Access-Control-Allow-Origin": "*"
-          }
-        });
-      }
-    }
-
-    return new Response("Not found", { status: 404 });
-  }
+// 💳 PRIX OFFICIELS (USD)
+const services = {
+  visa: 10,
+  immigration: 20,
+  assistance: 5
 };
+
+// 🌍 DEVISES
+const currencies = {
+  BEN: "XOF",
+  CIV: "XOF",
+  SEN: "XOF",
+  CMR: "XAF",
+  GAB: "XAF",
+  COG: "XAF",
+  COD: "CDF"
+};
+
+let rates = {};
+
+// 💱 charger taux
+async function loadRates() {
+  try {
+    const res = await fetch("https://open.er-api.com/v6/latest/USD");
+    const data = await res.json();
+    rates = data.rates;
+    console.log("Taux chargés");
+  } catch {
+    console.log("Erreur taux");
+  }
+}
+loadRates();
+
+// 🔐 API PAIEMENT SECURISEE
+app.post("/api/pay", async (req, res) => {
+
+  const { phone, service, country, operator } = req.body;
+
+  if (!phone || !service || !country || !operator) {
+    return res.status(400).json({ error: "Données invalides" });
+  }
+
+  const usd = services[service];
+  if (!usd) return res.status(400).json({ error: "Service invalide" });
+
+  const currency = currencies[country];
+  if (!rates[currency]) {
+    return res.status(500).json({ error: "Taux indisponible" });
+  }
+
+  const amount = Math.round(usd * rates[currency]);
+
+  try {
+
+    const paymentRes = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, amount, country, operator })
+    });
+
+    const data = await paymentRes.json();
+
+    // 📊 LOG
+    db.run(
+      "INSERT INTO payments (phone, service, amount, country, operator, status) VALUES (?, ?, ?, ?, ?, ?)",
+      [phone, service, amount, country, operator, data.status]
+    );
+
+    res.json({
+      success: true,
+      status: data.status,
+      amount
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+// 📊 LISTE DES PAIEMENTS
+app.get("/api/payments", (req, res) => {
+  db.all("SELECT * FROM payments ORDER BY created_at DESC", [], (err, rows) => {
+    res.json(rows);
+  });
+});
+
+// 🚀 START
+app.listen(3000, () => {
+  console.log("Serveur lancé sur http://localhost:3000");
+});
