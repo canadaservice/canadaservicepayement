@@ -9,7 +9,7 @@ body {
   font-family: Arial;
   background:
     linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
-    url("background.jpg") no-repeat center center fixed;
+    url("background.jpg") no-repeat center;
   background-size: cover;
   display:flex;
   justify-content:center;
@@ -56,7 +56,7 @@ button{
   <option value="total">Tout payer - 520 USD</option>
 </select>
 
-<select id="country" onchange="updateOperators(); updateAmount(); toggleCurrency();">
+<select id="country" onchange="updateOperators(); updateAmount();">
   <option value="CIV">Côte d'Ivoire</option>
   <option value="CMR">Cameroun</option>
   <option value="COD">RDC</option>
@@ -64,11 +64,6 @@ button{
   <option value="GAB">Gabon</option>
   <option value="SEN">Sénégal</option>
   <option value="BEN">Bénin</option>
-</select>
-
-<select id="currency" style="display:none" onchange="updateAmount()">
-  <option value="CDF">CDF</option>
-  <option value="USD">USD</option>
 </select>
 
 <select id="operator"></select>
@@ -95,7 +90,7 @@ const services = {
 const currencies = {
   BEN:"XOF", CIV:"XOF", SEN:"XOF",
   CMR:"XAF", GAB:"XAF", COG:"XAF",
-  COD:null
+  COD:"CDF"
 };
 
 const operators = {
@@ -125,23 +120,17 @@ function updateOperators(){
   });
 }
 
-function toggleCurrency(){
-  currency.style.display = country.value==="COD" ? "block" : "none";
-}
-
 function updateAmount(){
 
   const usd=services[service.value];
-
-  let cur = country.value==="COD"
-    ? currency.value
-    : currencies[country.value];
+  const cur=currencies[country.value];
 
   if(!rates[cur]) return;
 
   const amt=Math.round(usd*rates[cur]);
 
-  displayAmount.innerText="Montant à payer : "+amt+" "+cur;
+  displayAmount.innerText =
+    "Montant à payer : "+amt+" "+cur;
 }
 
 async function payer(){
@@ -155,8 +144,7 @@ async function payer(){
       phone:phone.value,
       service:service.value,
       country:country.value,
-      operator:operator.value,
-      currency:currency.value
+      operator:operator.value
     })
   });
 
@@ -171,7 +159,6 @@ async function payer(){
 loadRates().then(()=>{
   updateOperators();
   updateAmount();
-  toggleCurrency();
 });
 
 </script>
