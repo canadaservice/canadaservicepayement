@@ -1,22 +1,20 @@
-app.post("/api/pay", async (req, res) => {
+app.post("/api/pay", async (req,res)=>{
 
-  let { phone, service, country, operator } = req.body;
+  let { phone, country, operator } = req.body;
 
-  // 🔥 garantir format international
-  if (!phone.startsWith("+")) {
+  // 🔥 sécurité format
+  if(!phone.startsWith("+")){
     phone = "+" + phone;
   }
 
-  const usd = services[service];
-  const currency = currencies[country];
-  const amount = Math.round(usd * rates[currency]);
+  const amount = 1000; // test simple
 
-  try {
+  try{
 
-    const paymentRes = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const r = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
         phone,
         amount,
         country,
@@ -24,16 +22,14 @@ app.post("/api/pay", async (req, res) => {
       })
     });
 
-    const data = await paymentRes.json();
+    const data = await r.json();
 
-    res.json({
-      status: data.status,
-      amount,
-      currency
-    });
+    console.log("API RESPONSE:", data);
 
-  } catch (err) {
-    res.status(500).json({ error: "Erreur serveur" });
+    res.json(data);
+
+  }catch(e){
+    res.json({error:e.message});
   }
 
 });
