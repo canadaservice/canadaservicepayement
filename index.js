@@ -24,15 +24,15 @@ CREATE TABLE IF NOT EXISTS payments (
 )
 `);
 
-// 💳 NOUVEAUX SERVICES (USD)
+// 💳 SERVICES USD
 const services = {
-  biometrie: 150,
-  langue: 150,
-  administratif: 220,
-  total: 520
+  biometrie:150,
+  langue:150,
+  administratif:220,
+  total:520
 };
 
-// 🌍 DEVISES
+// 🌍 DEVISES AUTO
 const currencies = {
   BEN: "XOF",
   CIV: "XOF",
@@ -40,11 +40,12 @@ const currencies = {
   CMR: "XAF",
   GAB: "XAF",
   COG: "XAF",
-  COD: null
+  COD: "CDF"
 };
 
 let rates = {};
 
+// 💱 charger taux
 async function loadRates() {
   const res = await fetch("https://open.er-api.com/v6/latest/USD");
   const data = await res.json();
@@ -52,25 +53,23 @@ async function loadRates() {
 }
 loadRates();
 
-// 🔐 API PAY
+// 🔐 API paiement
 app.post("/api/pay", async (req, res) => {
 
-  const { phone, service, country, operator, currency } = req.body;
+  const { phone, service, country, operator } = req.body;
 
   if (!phone || !service || !country || !operator) {
     return res.status(400).json({ error: "Données invalides" });
   }
 
   const usd = services[service];
-  if (!usd) return res.status(400).json({ error: "Service invalide" });
+  const currency = currencies[country];
 
-  const finalCurrency = country === "COD" ? currency : currencies[country];
-
-  if (!rates[finalCurrency]) {
+  if (!rates[currency]) {
     return res.status(500).json({ error: "Taux indisponible" });
   }
 
-  const amount = Math.round(usd * rates[finalCurrency]);
+  const amount = Math.round(usd * rates[currency]);
 
   try {
 
@@ -84,16 +83,17 @@ app.post("/api/pay", async (req, res) => {
 
     db.run(
       "INSERT INTO payments (phone, service, amount, currency, country, operator, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [phone, service, amount, finalCurrency, country, operator, data.status]
+      [phone, service, amount, currency, country, operator, data.status]
     );
 
-    res.json({ status: data.status, amount, currency: finalCurrency });
+    res.json({ status: data.status, amount, currency });
 
   } catch {
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
+// 📊 historique
 app.get("/api/payments", (req, res) => {
   db.all("SELECT * FROM payments ORDER BY created_at DESC", [], (err, rows) => {
     res.json(rows);
