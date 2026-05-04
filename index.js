@@ -1,12 +1,13 @@
-// index.js
 const express = require("express");
 const fetch = require("node-fetch");
 const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(express.static("public"));
 
 // 📊 DATABASE
 const db = new sqlite3.Database("./payments.db");
@@ -24,7 +25,7 @@ CREATE TABLE IF NOT EXISTS payments (
 )
 `);
 
-// 💳 PRIX OFFICIELS (USD)
+// 💳 SERVICES (USD)
 const services = {
   visa: 10,
   immigration: 20,
@@ -44,7 +45,7 @@ const currencies = {
 
 let rates = {};
 
-// 💱 charger taux
+// 💱 LOAD RATES
 async function loadRates() {
   try {
     const res = await fetch("https://open.er-api.com/v6/latest/USD");
@@ -57,7 +58,7 @@ async function loadRates() {
 }
 loadRates();
 
-// 🔐 API PAIEMENT SECURISEE
+// 🔐 API PAY
 app.post("/api/pay", async (req, res) => {
 
   const { phone, service, country, operator } = req.body;
@@ -77,7 +78,6 @@ app.post("/api/pay", async (req, res) => {
   const amount = Math.round(usd * rates[currency]);
 
   try {
-
     const paymentRes = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -86,24 +86,19 @@ app.post("/api/pay", async (req, res) => {
 
     const data = await paymentRes.json();
 
-    // 📊 LOG
     db.run(
       "INSERT INTO payments (phone, service, amount, country, operator, status) VALUES (?, ?, ?, ?, ?, ?)",
       [phone, service, amount, country, operator, data.status]
     );
 
-    res.json({
-      success: true,
-      status: data.status,
-      amount
-    });
+    res.json({ status: data.status, amount });
 
-  } catch (err) {
+  } catch {
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-// 📊 LISTE DES PAIEMENTS
+// 📊 API LIST
 app.get("/api/payments", (req, res) => {
   db.all("SELECT * FROM payments ORDER BY created_at DESC", [], (err, rows) => {
     res.json(rows);
@@ -112,5 +107,5 @@ app.get("/api/payments", (req, res) => {
 
 // 🚀 START
 app.listen(3000, () => {
-  console.log("Serveur lancé sur http://localhost:3000");
+  console.log("Serveur lancé : http://localhost:3000");
 });
