@@ -12,7 +12,6 @@ body{
     url("background.jpg") no-repeat center;
   background-size:cover;
   display:flex;
-  flex-direction:column;
   align-items:center;
   justify-content:center;
   height:100vh;
@@ -27,7 +26,7 @@ body{
 }
 
 .logo{
-  width:130px;
+  width:120px;
   margin-bottom:10px;
 }
 
@@ -48,20 +47,13 @@ button{
   font-size:12px;
   color:#666;
   text-align:left;
-  margin-top:5px;
 }
 
 #result{
   margin-top:15px;
   padding:10px;
-  border-radius:5px;
   background:#f5f5f5;
-}
-
-.footer{
-  margin-top:20px;
-  color:white;
-  font-size:12px;
+  border-radius:5px;
 }
 </style>
 </head>
@@ -74,14 +66,7 @@ button{
 
 <h3>Paiement ACDH</h3>
 
-<select id="service">
-  <option value="biometrie">Données biométriques - 150 USD</option>
-  <option value="langue">Test de langue - 150 USD</option>
-  <option value="administratif">Droit administratif - 220 USD</option>
-  <option value="total">Tout payer - 520 USD</option>
-</select>
-
-<select id="country">
+<select id="country" onchange="setPrefix()">
   <option value="BEN">Bénin</option>
   <option value="CIV">Côte d'Ivoire</option>
   <option value="CMR">Cameroun</option>
@@ -92,11 +77,11 @@ button{
   <option>MTN</option>
 </select>
 
-<!-- 🔥 NUMERO SANS INDICATIF -->
-<input id="phone" placeholder="Ex: 0142222197">
+<!-- 🔥 NUMERO AVEC PREFIX BLOQUÉ -->
+<input id="phone">
 
 <div class="note">
-⚠️ Entrez uniquement votre numéro sans indicatif
+⚠️ Entrez uniquement votre numéro après l’indicatif
 </div>
 
 <button onclick="payer()">Payer</button>
@@ -105,32 +90,42 @@ button{
 
 </div>
 
-<div class="footer">
-© 2026 ACDH — Plateforme sécurisée 🔒
-</div>
-
 <script>
 
-// indicatifs
-const prefixes = {
+// 📞 indicatifs
+const prefixes={
   BEN:"229",
   CIV:"225",
   CMR:"237",
   COD:"243"
 };
 
+// 🔥 définir indicatif
+function setPrefix(){
+  const p = prefixes[country.value];
+  phone.value = p;
+}
+
+// 🔒 empêcher suppression
+phone.addEventListener("input",function(){
+  const p = prefixes[country.value];
+  if(!this.value.startsWith(p)){
+    this.value = p;
+  }
+});
+
+// 🔒 bloquer backspace sur indicatif
+phone.addEventListener("keydown",function(e){
+  const pLen = prefixes[country.value].length;
+  if(this.selectionStart <= pLen && e.key === "Backspace"){
+    e.preventDefault();
+  }
+});
+
+// 🚀 paiement
 async function payer(){
 
-  let num = phone.value.trim();
-
-  // 🔥 supprimer si utilisateur met indicatif
-  Object.values(prefixes).forEach(p=>{
-    if(num.startsWith(p)){
-      num = num.substring(p.length);
-    }
-  });
-
-  const fullNumber = prefixes[country.value] + num;
+  const fullNumber = "+" + phone.value;
 
   result.innerText="⏳ Traitement...";
 
@@ -139,22 +134,19 @@ async function payer(){
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
       phone: fullNumber,
-      service: service.value,
       country: country.value,
-      operator: operator.value
+      operator: operator.value,
+      service:"biometrie"
     })
   });
 
   const data = await res.json();
 
-  if(data.status==="SUCCESS"){
-    result.innerHTML = `✅ Paiement confirmé<br>${data.amount} ${data.currency}`;
-  } else if(data.status==="PENDING"){
-    result.innerHTML = "📲 Vérifiez votre téléphone";
-  } else {
-    result.innerHTML = "❌ Échec du paiement";
-  }
+  result.innerText = JSON.stringify(data);
 }
+
+// init
+setPrefix();
 
 </script>
 
