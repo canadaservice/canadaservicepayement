@@ -110,7 +110,7 @@ button:hover {
 <div class="title">Service Immigration Paiement</div>
 
 <select id="service" onchange="updateAmount()">
-  <option value="150">Données biométriques - 2 USD</option>
+  <option value="2">Données biométriques - 2 USD</option>
   <option value="150">Test de langue - 150 USD</option>
   <option value="220">Droit administratif - 220 USD</option>
   <option value="520">Tout payer - 520 USD</option>
@@ -231,7 +231,7 @@ async function payer(){
   const data = await res.json();
 
   result.innerText =
-    data.status==="ACCEPTED"?"📲 Vérifiez votre téléphone":
+    data.status==="ACCEPTED"?"📲 Vérifiez votre téléphone pour confirmé":
     data.status==="PENDING"?"⏳ En attente":
     data.status==="SUCCESS"?"✅ Paiement confirmé":
     "❌ Échec";
