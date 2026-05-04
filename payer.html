@@ -26,11 +26,8 @@ body{
   text-align:center;
 }
 
-.profile{
-  width:80px;
-  height:80px;
-  border-radius:50%;
-  object-fit:cover;
+.logo{
+  width:130px;
   margin-bottom:10px;
 }
 
@@ -56,7 +53,6 @@ button{
   margin-top:20px;
   color:white;
   font-size:12px;
-  text-align:center;
 }
 </style>
 </head>
@@ -65,7 +61,7 @@ button{
 
 <div class="box">
 
-<img src="profile.jpg" class="profile">
+<img src="logo.png" class="logo">
 
 <h3>Paiement ACDH</h3>
 
@@ -86,7 +82,7 @@ button{
   <option value="BEN">Bénin</option>
 </select>
 
-<!-- 💵 USD RDC -->
+<!-- USD RDC -->
 <select id="currency" style="display:none" onchange="updateAmount()">
   <option value="CDF">CDF</option>
   <option value="USD">USD</option>
@@ -94,7 +90,7 @@ button{
 
 <select id="operator"></select>
 
-<input id="phone" placeholder="Numéro">
+<input id="phone" placeholder="Numéro sans indicatif">
 
 <p id="displayAmount"></p>
 
@@ -105,11 +101,12 @@ button{
 </div>
 
 <div class="footer">
-  © 2026 ACDH Services Canada International — Tous droits réservés — Plateforme sécurisée 🔒
+© 2026 ACDH Services Canada International — Tous droits réservés — Plateforme sécurisée 🔒
 </div>
 
 <script>
 
+// 💳 SERVICES
 const services={
   biometrie:150,
   langue:150,
@@ -117,12 +114,14 @@ const services={
   total:520
 };
 
+// 🌍 DEVISES
 const currencies={
   BEN:"XOF",CIV:"XOF",SEN:"XOF",
   CMR:"XAF",GAB:"XAF",COG:"XAF",
   COD:"CDF"
 };
 
+// 📡 OPERATEURS
 const operators={
   BEN:["MTN","MOOV"],
   CMR:["MTN"],
@@ -133,6 +132,17 @@ const operators={
   SEN:["ORANGE","FREE"]
 };
 
+// 📞 INDICATIFS
+const prefixes={
+  BEN:"229",
+  CIV:"225",
+  CMR:"237",
+  COD:"243",
+  COG:"242",
+  GAB:"241",
+  SEN:"221"
+};
+
 let rates={};
 
 async function loadRates(){
@@ -141,15 +151,43 @@ async function loadRates(){
 }
 
 function updateOperators(){
+
   operator.innerHTML="";
+
   operators[country.value].forEach(o=>{
     let op=document.createElement("option");
     op.value=o;
     op.textContent=o;
     operator.appendChild(op);
   });
+
+  // 🔥 indicatif auto
+  phone.value = prefixes[country.value];
 }
 
+// 🔒 bloquer suppression indicatif
+phone.addEventListener("input",function(){
+
+  const prefix = prefixes[country.value];
+
+  if(!this.value.startsWith(prefix)){
+    this.value = prefix;
+  }
+
+});
+
+// 🔒 empêcher effacement indicatif
+phone.addEventListener("keydown",function(e){
+
+  const prefixLength = prefixes[country.value].length;
+
+  if(this.selectionStart <= prefixLength && e.key === "Backspace"){
+    e.preventDefault();
+  }
+
+});
+
+// 💵 afficher USD seulement RDC
 function toggleCurrency(){
   currency.style.display = country.value==="COD" ? "block":"none";
 }
