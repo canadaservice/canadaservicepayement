@@ -2,46 +2,34 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Paiement - ACDH Services Canada International</title>
+<title>Paiement ACDH</title>
 
 <style>
 body {
   font-family: Arial;
-  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
-
 .box {
-  background: white;
-  padding: 30px;
-  border-radius: 12px;
-  width: 360px;
-  text-align: center;
+  background:white;
+  padding:30px;
+  width:350px;
+  border-radius:10px;
 }
-
-input, select {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
+input,select,button{
+  width:100%;
+  margin-top:10px;
+  padding:10px;
 }
-
-button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 15px;
-  background: #00bcd4;
-  color: white;
-  border: none;
-  font-weight: bold;
+button{
+  background:#00bcd4;
+  color:white;
+  border:none;
 }
-
-#displayAmount {
-  margin-top: 10px;
-  font-weight: bold;
-}
+#displayAmount{margin-top:10px;font-weight:bold;}
 </style>
 </head>
 
@@ -49,7 +37,7 @@ button {
 
 <div class="box">
 
-<h2>PAIEMENT ACDH</h2>
+<h3>Paiement ACDH</h3>
 
 <select id="service" onchange="updateAmount()">
   <option value="visa">Visa Canada</option>
@@ -57,7 +45,7 @@ button {
   <option value="assistance">Assistance</option>
 </select>
 
-<select id="country" onchange="updateOperators(); updateAmount(); toggleCurrency()">
+<select id="country" onchange="updateOperators();updateAmount();">
   <option value="CIV">Côte d'Ivoire</option>
   <option value="CMR">Cameroun</option>
   <option value="COD">RDC</option>
@@ -67,19 +55,13 @@ button {
   <option value="BEN">Bénin</option>
 </select>
 
-<select id="currency" style="display:none" onchange="updateAmount()">
-  <option value="CDF">CDF</option>
-  <option value="USD">USD</option>
-</select>
-
 <select id="operator"></select>
 
-<input type="text" id="phone" placeholder="Numéro">
+<input id="phone" placeholder="Numéro">
 
-<input type="hidden" id="amount">
 <p id="displayAmount"></p>
 
-<button onclick="payer()">Payer maintenant</button>
+<button onclick="payer()">Payer</button>
 
 <p id="result"></p>
 
@@ -87,169 +69,73 @@ button {
 
 <script>
 
-// 💳 SERVICES (USD)
-const services = {
-  visa: 10,
-  immigration: 20,
-  assistance: 5
-};
+const services = { visa:10, immigration:20, assistance:5 };
 
-// 🌍 DEVISES
 const currencies = {
-  BEN: "XOF",
-  CIV: "XOF",
-  SEN: "XOF",
-  CMR: "XAF",
-  GAB: "XAF",
-  COG: "XAF",
-  COD: null
+  BEN:"XOF", CIV:"XOF", SEN:"XOF",
+  CMR:"XAF", GAB:"XAF", COG:"XAF",
+  COD:"CDF"
 };
 
-// 📡 OPERATEURS (dashboard réel)
 const operators = {
-  BEN: ["MTN", "MOOV"],
-  CMR: ["MTN"],
-  CIV: ["MTN", "ORANGE"],
-  COD: ["AIRTEL", "ORANGE", "VODACOM"],
-  GAB: ["AIRTEL"],
-  COG: ["AIRTEL", "MTN"],
-  SEN: ["ORANGE", "FREE"]
+  BEN:["MTN","MOOV"],
+  CMR:["MTN"],
+  CIV:["MTN","ORANGE"],
+  COD:["AIRTEL","ORANGE","VODACOM"],
+  GAB:["AIRTEL"],
+  COG:["AIRTEL","MTN"],
+  SEN:["ORANGE","FREE"]
 };
 
-// 🔓 OPERATEURS ACTIFS
-const activeProviders = {
-  BEN: ["MTN", "MOOV"],
-  CMR: ["MTN"],
-  CIV: ["MTN", "ORANGE"],
-  COD: ["AIRTEL", "ORANGE", "VODACOM"],
-  GAB: ["AIRTEL"],
-  COG: ["AIRTEL", "MTN"],
-  SEN: ["ORANGE"]
-};
+let rates={};
 
-// 📞 PREFIXES
-const prefixes = {
-  BEN: "229",
-  CIV: "225",
-  CMR: "237",
-  COD: "243",
-  COG: "242",
-  GAB: "241",
-  SEN: "221"
-};
-
-let exchangeRates = {};
-
-// 💱 API TAUX
-async function loadRates() {
-  try {
-    const res = await fetch("https://open.er-api.com/v6/latest/USD");
-    const data = await res.json();
-    exchangeRates = data.rates;
-  } catch {
-    console.log("Erreur taux");
-  }
+async function loadRates(){
+  const r=await fetch("https://open.er-api.com/v6/latest/USD");
+  rates=(await r.json()).rates;
 }
 
-// 🔄 OPERATEURS
-function updateOperators() {
-  const country = document.getElementById("country").value;
-  const select = document.getElementById("operator");
-  const phone = document.getElementById("phone");
+function updateOperators(){
+  const c=country.value;
+  operator.innerHTML="";
+  operators[c].forEach(o=>{
+    let op=document.createElement("option");
+    op.value=o;
+    op.textContent=o;
+    operator.appendChild(op);
+  });
+}
 
-  select.innerHTML = "";
+function updateAmount(){
+  const usd=services[service.value];
+  const cur=currencies[country.value];
+  if(!rates[cur])return;
+  const amt=Math.round(usd*rates[cur]);
+  displayAmount.innerText="Montant : "+amt+" "+cur;
+}
 
-  operators[country].forEach(op => {
-    if (activeProviders[country].includes(op)) {
-      const option = document.createElement("option");
-      option.value = op;
-      option.textContent = op;
-      select.appendChild(option);
-    }
+async function payer(){
+
+  result.innerText="Traitement...";
+
+  const res=await fetch("/api/pay",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      phone:phone.value,
+      service:service.value,
+      country:country.value,
+      operator:operator.value
+    })
   });
 
-  phone.value = prefixes[country];
+  const data=await res.json();
+
+  result.innerText=data.status;
 }
 
-// 🔒 PREFIXE
-document.getElementById("phone").addEventListener("input", function () {
-  const country = document.getElementById("country").value;
-  const prefix = prefixes[country];
-
-  if (!this.value.startsWith(prefix)) {
-    this.value = prefix;
-  }
-});
-
-// 🌍 RDC devise
-function toggleCurrency() {
-  const country = document.getElementById("country").value;
-  const currencySelect = document.getElementById("currency");
-
-  currencySelect.style.display = country === "COD" ? "block" : "none";
-}
-
-// 💱 CONVERSION
-function updateAmount() {
-  const service = document.getElementById("service").value;
-  const country = document.getElementById("country").value;
-
-  const usd = services[service];
-
-  const currency = country === "COD"
-    ? document.getElementById("currency").value
-    : currencies[country];
-
-  if (!exchangeRates[currency]) return;
-
-  const converted = Math.round(usd * exchangeRates[currency]);
-
-  document.getElementById("amount").value = converted;
-
-  document.getElementById("displayAmount").innerText =
-    "Montant à payer : " + converted + " " + currency;
-}
-
-// 💳 PAIEMENT
-async function payer() {
-
-  const phone = document.getElementById("phone").value;
-  const amount = document.getElementById("amount").value;
-  const country = document.getElementById("country").value;
-  const operator = document.getElementById("operator").value;
-  const result = document.getElementById("result");
-
-  if (!phone || phone.length < 8) {
-    result.innerText = "Numéro invalide";
-    return;
-  }
-
-  result.innerText = "Traitement...";
-
-  try {
-    const res = await fetch("https://orange-queen.serviceprive93.workers.dev/deposit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, amount, country, operator })
-    });
-
-    const data = await res.json();
-
-    result.innerText =
-      data.status === "SUCCESS" ? "Paiement réussi"
-      : data.status === "PENDING" ? "En attente"
-      : "Échec";
-
-  } catch {
-    result.innerText = "Erreur réseau";
-  }
-}
-
-// 🚀 INIT
-loadRates().then(() => {
+loadRates().then(()=>{
   updateOperators();
   updateAmount();
-  toggleCurrency();
 });
 
 </script>
